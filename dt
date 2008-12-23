@@ -1,0 +1,88 @@
+#! /bin/bash
+# Distributed Tools - dtools - dt
+# Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
+
+err () { echo "fail::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
+req () { type -p "$1" 2>/dev/null >/dev/null; }
+lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
+fun () { declare -F "$1" 2>/dev/null >/dev/null; }
+
+str_help="usage:
+  $0 [options] <command> <pattern> [arguments]+
+
+patterns:
+  exp:X    use regular expression X to match involving hosts.
+  tag:X    match hosts with tag operation X (RTFM)
+
+options:
+  -h     display this help screen.
+  -H X   use X as known_hosts database.
+  -p     pretend only and do nothing.
+  -a     ask interactively.
+
+Andrés J. Díaz <ajdiaz@connectical.com>
+"
+show_help () { echo "$str_help"; }
+
+while [[ "$1" == -* ]]; do
+	case "$1" in
+		-h) show_help && exit 0 ;;
+		-p) op_p=true ;;
+		-a) op_a=true ;;
+		-H) opt_H="$2" ; shift ;;
+		-*) E=2 err $"unknown option $1"
+	esac
+	shift
+done
+
+[ $# -lt 2 ] && E=2 err $"missing arguments, almost two are required"
+
+dt_ext=".bash"
+
+dt_evl ()
+{
+	case "$1" in
+		exp:*) dt_evl_exp "${1#exp:}" ;;
+		tag:*) dt_evl_tag "${1#tag:}" ;;
+		*) echo "$1"
+	esac
+}
+
+dt_evl_exp ()
+{
+
+}
+
+dt_evl_tag ()
+{
+}
+
+dt_cmd="$1" ; shift
+dt_ptr="$1" ; shift
+
+lib "${dt_cmd}${dt_ext}" ||
+	E=1 err $"invalid command or internal command error"
+
+fun run ||
+	E=3 err $"internal command error"
+
+hosts=( $(dt_evl "$dt_ptr") )
+
+for host in ${host[@]}
+
