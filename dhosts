@@ -1,0 +1,144 @@
+#! /bin/bash
+# Copyright (c) 2007 Andrés J. Díaz <ajdiaz@connectical.com>
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# The default host database use the ``known_hosts`` file in
+# user's HOME directory.
+db_host=( ~/.ssh/known_hosts )
+
+packets=1
+timeout=3
+
+fatal   () { echo "fatal: $@" >&2 ; ${E:+exit $E}; }
+require () { type -p "$1" 2>&1 >/dev/null; }
+debug   () { :; }
+list    () { :; }
+func 	() { declare -F "$1" 2>&1 >/dev/null ; }
+colors  () { tput colors 2>&1 >/dev/null; }
+
+str_help=$"$0 [options] [command] [arguments]
+
+dhosts command manage the known_hosts file which will be used by
+dtools.
+
+Options:
+  -h     print this help screen
+  -H X   use X as hosts file in known_host format
+
+Commands:
+  list   list all available hosts in database
+  add    add a host in database
+  sync   sync database in a list of hosts provides as arguments.
+  tags   list tags for hosts in database
+  tag    manage tags in database
+  help   provide help for command in argument.
+
+Andrés J. Díaz <ajdiaz@connectical.com>"
+cmd_help () { help_${1:-help}; }
+
+help_help () { echo "$str_help"; }
+
+str_help_list=$"list
+
+The list command get a list of hosts registered in
+known_host database.
+"
+help_list () { echo "$str_help_list"; }
+
+str_help_add="add <host>
+
+The add command add a host into known_hosts database,
+retrying the public id if available. One host can
+provide a couple of puublic identifications, for
+example when more than one public key type is available
+"
+help_add () { echo "$str_help_add"; }
+
+str_help_tags="tags
+
+The tags command list all tags in known_hosts database
+and the hosts which are linked to.
+"
+help_tags () { echo "$str_help_tags"; }
+
+str_help_tag="tag <tag> <regexp>
+
+The tag command add a tag to the host which match to
+specific regular expresion.
+"
+
+
+verbose () {
+	verbose=true
+	debug () { echo "${H}debug:${N}:$@" >&2;	}
+	list () {
+		for item in "$@"; do
+			if [ "${item%% *}" != "${item## *}" ]
+			then
+				debug "  [${item%% *}] ${item##* } "
+			else
+				debug "  ${item}"
+			fi
+		done;
+	}
+}
+
+
+# parse commands and arguments
+while [[ "$1" == -* ]]; do
+	case "$1" in
+		-h|--help) cmd_help && exit 0;;
+		-H) db_hosts="${2:?$"argument required"}" \
+			|| E=2 fatal $"uknown command or missing argument" ; shift ;;
+	esac ; shift
+done
+
+# command function definitions
+cmd_list () { sed 's/[ |,].*//' "${db_host[@]}"; }
+cmd_add ()
+{
+	let i=0
+	while read keys ; do
+		echo "${keys}" | cat ${db_host} - | sort | uniq > ${db_host}
+		((i++))
+	done <<< "$(ssh-keyscan "$1" 2>/dev/null)"
+	echo "$i host keys added"
+}
+cmd_tags () { cut -d' ' -f1,4 "${db_host[@]}"; }
+cmd_tag ()
+{
+	tags="$1" && shift
+	local count=0
+	for regexp in "$@" ; do
+    	# Add tags to the host in database file.
+	    sed -i -e "s/^$regexp[ |,].*/&,${tags}/" -e 's/=,/= tag:/g' "${db_host[@]}"
+	    ((count ++))
+	done
+	echo $"$count expressions tagged"
+}
+
+
+# exec command provided in command line
+cmd="$1" && shift
+func "cmd_$cmd" && "cmd_$cmd" "$@" \
+	|| E=1 fatal $"unknown command."
+
+# vim:foldmethod=syntax:foldenable:

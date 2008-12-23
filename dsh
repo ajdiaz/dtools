@@ -1,0 +1,138 @@
+#! /bin/bash
+# Copyright (c) 2007 Andrés J. Díaz <ajdiaz@connectical.com>
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without restriction,
+# including without limitation the rights to use, copy, modify, merge,
+# publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# The default host database use the ``known_hosts`` file in
+# user's HOME directory.
+db_host=( ~/.ssh/known_hosts )
+
+fatal   () { echo "fatal: $@" >&2 ; ${E:+exit $E}; }
+require () { type -p "$1" 2>&1 >/dev/null; }
+debug   () { :; }
+list    () { :; }
+colors  () { tput colors 2>&1 >/dev/null; }
+
+str_help=$"$0 [options] <command> [arguments]
+
+dsh execute a command over a number of hosts which are
+listed in a hosts(5) database.
+
+Options:
+  -h      display this help screen
+  -v      increase verbosity
+  -p      pretend, do not do nothing really
+  -n X    send only to hosts with match with X regexp(1)
+  -H X    use X as hosts database
+  -N      no colors
+  -0      try to run command as root in host
+
+Andrés J. Díaz <ajdiaz@connectical.com>"
+help () { echo "$str_help"; }
+
+verbose () {
+	debug () { echo "${H}debug:${N}:$@" >&2;	}
+	list () {
+		for item in "$@"; do
+			if [ "${item%% *}" != "${item## *}" ]
+			then
+				debug "  [${item%% *}] ${item##* } "
+			else
+				debug "  ${item}"
+			fi
+		done;
+	}
+}
+
+# Define colors if there are supported by terminal.
+if colors; then
+	H=$'\e[0;1m'
+	B=$'\e[34;1m'
+	N=$'\e[0;0m'
+fi
+
+# Parse options in command line using getopts. The available options
+# and their explanation is provided to the user by -h flag in cmdline.
+while getopts "hvpn:H:0NP:" option "$@"; do
+	case $option in
+		v) verbose ;;
+		h) help && exit 0 ;;
+		p) verbose && pretend=true ;;
+		n) hregexp="$OPTARG" ;;
+		N) B= ; N= ; H= ;;
+		H) db_host="$OPTARG" ;;
+		P) prefix="$OPTARG" ;;
+		0) runroot=true ;;
+	esac
+done ; shift $((OPTIND -1))
+
+# Check if mandatory arguments is always provided in cmdline, if not then
+# abort the running.
+[ "$1" ] || E=2 fatal $"argument required"
+
+debug $"Found pattern host is: ${hregexp:-.*}"
+
+# Create awk expresion to search tags.
+awk_expr=1
+export IFS=','
+for tag in ${tags}; do
+	case $tag in
+		+*) awk_expr="$awk_expr || match(\$4,/[:|,]$tag[,]?/)";;
+		*)  awk_expr="$awk_expr && match(\$4,/[:|,]$tag[,]?/)";;
+	esac
+done
+export IFS=' '
+# Getting the hosts which we will send the specified keys via ssh-keysend.
+host="$(
+	awk "{
+		if ( (\$4 ~ /${tags:+tag:}.*/) && $awk_expr && (/^${hregexp:-.*}/) ) {
+			gsub(\",.*\",\"\")
+			printf \"'%s'\n\",\$1 }
+	}" "${db_host[@]}"
+)"
+
+eval host=( $host )
+debug $"Affected ${#host[@]} host(s) for current action."
+list "${host[@]}"
+
+# If running in pretend mode, then it's a good moment to exit.
+${pretend:-false} && exit 0
+
+# For each host try to execute the command remotely.
+for host in "${host[@]}" ; do
+	{
+	debug $"Running command on ${host}"
+
+	if ${runroot:-false}; then
+		ret="$(	ssh "$host" "sudo $@" 2>&1 )"
+		cod=$?
+	else
+		ret="$( ssh "$host" "$@" 2>&1 )"
+		cod=$?
+	fi
+	sed "s/^/${B}${prefix:-$host}:${N}/" <<<"${ret}"
+	} &
+
+done
+
+wait # wait for childs and exit
+exit ${cod:-0}
+
+# vim:foldmethod=syntax:foldenable:
