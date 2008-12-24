@@ -17,14 +17,20 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
+LC_ALL=C; LANG=C; export LANG LC_ALL
 
+# Some usefull functions to everybody, declared here to be accesible for all
+# script and modules. We keep here check functions and error dispatchers.
 err () { echo "fail::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 
+# Set the help string message which will be appear when we will call the
+# script using the -h option in command line. Check parsing options block
+# below for more information about internals.
 str_help="usage:
-  $0 [options] <command> <pattern> [arguments]+
+  $0 [options] <pattern> <command> [arguments]+
 
 patterns:
   exp:X    use regular expression X to match involving hosts.
@@ -34,27 +40,39 @@ options:
   -h     display this help screen.
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
-  -a     ask interactively.
 
 Andrés J. Díaz <ajdiaz@connectical.com>
 "
 show_help () { echo "$str_help"; }
 
+# Parsing command line options in first place, this will be in the first
+# argument, because module arguments can contains also options in the same
+# format, so getopts it not usefull here.
 while [[ "$1" == -* ]]; do
 	case "$1" in
 		-h) show_help && exit 0 ;;
-		-p) op_p=true ;;
-		-a) op_a=true ;;
+		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
+		-T) opt_T="$2" ; shift ;;
 		-*) E=2 err $"unknown option $1"
 	esac
 	shift
 done
-
 [ $# -lt 2 ] && E=2 err $"missing arguments, almost two are required"
 
+# Define some internals variables, including default module extensions,
+# default known_host database file and so on.
 dt_ext=".bash"
+dt_lst=${opt_H:-~/.ssh/known_hosts}
+dt_ptr="$1" ; shift
+dt_cmd="$1" ; shift
 
+# Here are defined evaluations functions for host pattern included in
+# command line. We support for regular expressions (using exp:<regexp>), and
+# tags defined in known_hosts (by the tag:<tagop> format).
+#
+# TODO in the future we can provide a module method to add new patterns,
+# like sqlite:<sentence> or similar.
 dt_evl ()
 {
 	case "$1" in
@@ -66,23 +84,94 @@ dt_evl ()
 
 dt_evl_exp ()
 {
+	local ret=''
 
+	ret="$(egrep -o "^$1[,]*[[:space:]]*" <(cut -d' ' -f1 "${dt_lst}"))" ||
+	ret="$(egrep -o "^,$1$"  <(cut -d' ' -f1 "${dt_lst}"))"
+
+	echo "${ret%%,*}"
 }
 
 dt_evl_tag ()
 {
+	local ret=''
+	local exp=1
+
+	# tags operations are not trivial to parse, please check the reference
+	# manual for more information about tag expressions.
+	IFS=','
+	for tag in $1 ; do
+		case "$tag" in
+			+*) exp="$exp '|' '(' "\$tag" ':' '${tag#+}' ')'" ;;
+			-*) exp="$exp '&' '(' '(' "\$tag" ':' '${tag#-}' ')' '!=' '1' ')'" ;;
+			**) exp="$exp '&' '('  "\$tag" ':' '$tag' ')'" ;;
+		esac
+	done
+
+	IFS=' '
+	while read host ssh key tag; do
+		tag="${tag#tag:}"
+		[ "$tag" ] || continue
+		if [ "$tag" ] && eval expr ${exp} > /dev/null ; then
+			ret="$ret ${host%%,*}"
+		fi
+	done < "${dt_lst}"
+	echo "${ret}"
+	exit 0;
 }
 
-dt_cmd="$1" ; shift
-dt_ptr="$1" ; shift
-
+# Load library according the command provided as argument, if library not
+# found or there are some error, then abort.
 lib "${dt_cmd}${dt_ext}" ||
 	E=1 err $"invalid command or internal command error"
 
 fun run ||
-	E=3 err $"internal command error"
+	E=1 err $"internal command error"
 
+# Evaluate the host pattern calling evaluation functions described below to
+# obtain an array of affected hosts.
 hosts=( $(dt_evl "$dt_ptr") )
 
-for host in ${host[@]}
+# if pretend is enabled then display hosts and exit successfully.
+if ${opt_p:-false}; then
+	for h in "${hosts[@]}" ; do
+		echo "okay::$(basename $0):pretend:$dt_cmd:${h}"
+	done
+	exit 0
+fi
 
+# Set and validate the threading options if it's present on command
+# line. Really bash do not handle threads properly, so we use standard
+# child proccess XXX be carefull with loadavg measurements when use
+# dtools many times, the loadavg value in shortterm can be increased
+# so much. TODO in the future search best way than fork() to run in
+# parallell, maybe creating a threads builtin, or port to bill.
+let dt_thr="${opt_T:-5}"
+let dt_cnt=0
+
+dt_run () {
+	local h="$1" ; shift
+	ret="$(run "${h}" "$@" 2>&1)" &&
+		echo "okay::$(basename $0):$dt_cmd:${h}:${ret//$'\n'/\\n}" ||
+		echo "fail::$(basename $0):$dt_cmd:${h}:${ret//$'\n'/\\n}"
+}
+
+for h in "${hosts[@]}" ; do
+
+	# Dispatch runner if no thread configuration found, this provide
+	# a linear beahviour.
+	if [ $dt_thr -eq 0 ]; then
+		dt_run "${h}" "$@"
+		continue
+	fi
+
+	if [ $dt_cnt -lt $dt_thr ]; then
+		((dt_cnt++))
+		dt_run "${h}" "$@" &
+	else
+		wait
+		let dt_cnt=0
+	fi
+done
+
+wait
