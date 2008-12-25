@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - lib/scp.bash
+# Distributed Tools - dtools - lib/rscp.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,10 @@ run ()
 	local u="${LOGNAME}"
 	local a=()
 	local h="$1" ; shift
-	req scp || E=3 err $"cannot found required binary scp"
+	local l="${HOSTNAME:-$(hostname -f 2>/dev/null)}"
+
+	[ "$l" ] || E=3 err $"cannot get FQDN of local hostname"
+	req ssh  || E=3 err $"cannot found required binary ssh"
 
 	while [[ "$1" == -* ]]; do
 		case "$1" in
@@ -36,16 +39,17 @@ run ()
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	scp -q "${a[@]}" "${1}" "${u}@${h}:${2}"
+	ssh -oBatchMode=true "${u:+${u}@}${h}" "scp" \
+		"-q" "${a[@]}" "${1}" "${LOGNAME:-${u}}@${l}:${2:-$PWD}"
 }
 
-help "usage: scp [-u <user>] [scp_opts] <local_file> [remote_file]
+help "usage: rscp [-u <user>] [scp_opts] <remote_file> [local_file]
 
-This module distribute a local file to a remote hosts which match with
-the pattern. You can use the -u option to set the remote user to use,
-if not defined use the same as running dt. Also you can pass any scp(1)
-option. The local_file is the local file to copy on, and the remote file is
-the remote file (for all hosts) where the file must be put in on. You can
-copy a directory using the -r option of scp. If remote_file is not present,
-copy to HOME.
+This module copy a file from a list of remote hosts to local host (it's the
+symetric command of scp, but reverse). The -u option can set the remote user
+to logon. You can set a list of scp(1) options which will be passed to
+remote scp program when copy file to local host. The remote_file is the file
+path to be copy to here and local_file is the local path where file must be
+copy on. If local_file is not present, the file might be copied to working
+directory.
 "

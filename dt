@@ -37,20 +37,26 @@ patterns:
   tag:X    match hosts with tag operation X (RTFM)
 
 options:
-  -h     display this help screen.
+  -h X   display this help about X or this help screen.
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
 
 Andrés J. Díaz <ajdiaz@connectical.com>
 "
-show_help () { echo "$str_help"; }
+show_help () {
+	if [ "$1" ] ; then
+		lib "$1.bash" || E=1 err $"invalid command or internal command error"
+	fi
+	echo "$str_help"
+}
+help () { str_help="$1"; }
 
 # Parsing command line options in first place, this will be in the first
 # argument, because module arguments can contains also options in the same
 # format, so getopts it not usefull here.
 while [[ "$1" == -* ]]; do
 	case "$1" in
-		-h) show_help && exit 0 ;;
+		-h) show_help "$2" && exit 0 ;;
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
@@ -62,7 +68,6 @@ done
 
 # Define some internals variables, including default module extensions,
 # default known_host database file and so on.
-dt_ext=".bash"
 dt_lst=${opt_H:-~/.ssh/known_hosts}
 dt_ptr="$1" ; shift
 dt_cmd="$1" ; shift
@@ -122,7 +127,7 @@ dt_evl_tag ()
 
 # Load library according the command provided as argument, if library not
 # found or there are some error, then abort.
-lib "${dt_cmd}${dt_ext}" ||
+lib "${dt_cmd}.bash" ||
 	E=1 err $"invalid command or internal command error"
 
 fun run ||

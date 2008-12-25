@@ -38,3 +38,10 @@ run ()
 	done <<<"$r"
 
 }
+
+help "usage: ping [ping_opts]
+
+This module pings the hosts which match with pattern host
+and return the latency. If fails a error message is returned.
+You can use here any of the options for the ping(1) command.
+"
