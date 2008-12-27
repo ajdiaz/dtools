@@ -21,10 +21,11 @@ LC_ALL=C; LANG=C; export LANG LC_ALL
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
-err () { echo "fail::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
+err () { echo "${R}fail${N}::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
+cap () { tput "$1" 2>/dev/null >/dev/null; }
 
 # Set the help string message which will be appear when we will call the
 # script using the -h option in command line. Check parsing options block
@@ -40,6 +41,8 @@ options:
   -h X   display this help about X or this help screen.
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
+  -T X   use X threads (really use fork).
+  -N     supress color output
 
 Andrés J. Díaz <ajdiaz@connectical.com>
 "
@@ -60,11 +63,21 @@ while [[ "$1" == -* ]]; do
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
+		-N) opt_N=false;;
 		-*) E=2 err $"unknown option $1"
 	esac
 	shift
 done
 [ $# -lt 2 ] && E=2 err $"missing arguments, almost two are required"
+
+# Define colors if capability is present in tty and if -N option is no
+# present in command line.
+if cap colors && ${opt_N:-true}; then
+	H=$'\e[0;1m'
+	N=$'\e[0;0m'
+	R=$'\e[31;1m'
+	G=$'\e[32;1m'
+fi
 
 # Define some internals variables, including default module extensions,
 # default known_host database file and so on.
@@ -140,7 +153,7 @@ hosts=( $(dt_evl "$dt_ptr") )
 # if pretend is enabled then display hosts and exit successfully.
 if ${opt_p:-false}; then
 	for h in "${hosts[@]}" ; do
-		echo "okay::$(basename $0):pretend:$dt_cmd:${h}"
+		echo "${G}okay${N}::$(basename $0):pretend:$dt_cmd:${H}${h}${N}"
 	done
 	exit 0
 fi
@@ -157,8 +170,8 @@ let dt_cnt=0
 dt_run () {
 	local h="$1" ; shift
 	ret="$(run "${h}" "$@" 2>&1)" &&
-		echo "okay::$(basename $0):$dt_cmd:${h}:${ret//$'\n'/\\n}" ||
-		echo "fail::$(basename $0):$dt_cmd:${h}:${ret//$'\n'/\\n}"
+		echo "${G}okay${N}::$(basename $0):$dt_cmd:${H}${h}${N}:${ret//$'\n'/\\n}" ||
+		echo "${R}fail${N}::$(basename $0):$dt_cmd:${H}${h}${N}:${ret//$'\n'/\\n}"
 }
 
 for h in "${hosts[@]}" ; do
