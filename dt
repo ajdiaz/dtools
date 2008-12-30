@@ -96,7 +96,7 @@ dt_evl ()
 	case "$1" in
 		exp:*) dt_evl_exp "${1#exp:}" ;;
 		tag:*) dt_evl_tag "${1#tag:}" ;;
-		*) echo "$1"
+		*) echo "${1//,/ }"
 	esac
 }
 
