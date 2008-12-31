@@ -1,0 +1,329 @@
+.\" Man page generated from reStructeredText.
+.TH dt  "2008-12-30" "" ""
+.SH NAME
+dt \- distributed tools
+
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level magin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+
+.SH SYNOPSIS
+.INDENT 0.0
+.INDENT 3.5
+dt [options] <host_pattern> <command> [arguments]
+
+.UNINDENT
+.UNINDENT
+
+.SH DESCRIPTION
+Distributed tools, aka dtools is a suite of programs to manage remotely
+a number of UNIX systems across SSH connection. Dtools do not support (yet)
+other connection type, if you need telnet connections or similar, maybe you
+can try PyDSH or other similar projects (read the Related Projects section
+below).
+
+The \fPdt\fP command is the main frontend for Distributed Tools. The \fPdt\fP
+command allows you to execute the \fIcommand\fP passed as argument in the host
+list identified by \fIhost_pattern\fP.
+
+
+.SH HOST PATTERN
+The host patterns using in \fPdt\fP can use one of the following forms:
+
+.INDENT 0.0
+
+.IP \(bu 2
+Regular expression, using the prefix \fBexp:\fP before the regular
+expression in perl format as described in regexp(7).
+
+
+.IP \(bu 2
+Tag operation, using the prefix \fBtag:\fP before the tag operation. A tag
+operation is a list, comma separated, of valid tags. Read the section
+\fI\%Tags\fP below for more information.
+
+
+.IP \(bu 2
+Host or multiple host directly, without prefix the host pattern then the
+host pattern is interpreted as hostname (or multiple hostnames
+comma\-separated).
+
+.UNINDENT
+
+.SH OPTIONS
+.INDENT 0.0
+
+.TP
+.B \-h [value]
+Print a short help and exits. If \fIvalue\fP is present then print help
+about specified command.
+
+.UNINDENT
+.INDENT 0.0
+
+.TP
+.B \-p
+Pretend the command execution, do not really. Its\'s usefull to check the
+affected hosts.
+
+
+.TP
+.BI \-H\  <file>
+By default \fPdt\fP uses the \fBknown_hosts\fP files provided by ssh(1), but
+you can specify another file in the same format using this option.
+
+
+.TP
+.BI \-T\  <number>
+Dispatch the command in the specified number of threads (really use
+fork(2)).
+
+
+.TP
+.B \-N
+Supress color output always.
+
+.UNINDENT
+
+.SH TAGS
+Tags are labels in hosts. Each host in \fBknown_host\fP file use the 5th
+parameter as tag definition. You can set a number of tags to a host using
+the \fItag\fP command.
+
+You can operate with tags, with normal boolean operations: AND, OR, MINUS:
+
+.INDENT 0.0
+
+.IP \(bu 2
+tag1,tag2: tag1 AND tag2
+
+
+.IP \(bu 2
+tag1,+tag2: tag1 OR tag2
+
+
+.IP \(bu 2
+tag1,\-tag2: tag1 AND NOT tag2
+
+
+.IP \(bu 2
+tag1,\-tag2,+tag3: tag1 OR tag3 BUT NOT tag2
+
+.UNINDENT
+
+.SH COMMANDS
+
+.SS key [\-u <user>] <key_file>+
+This module adds the public key file passed as argument into remote
+authorized_keys for hosts with match with pattern. This module is similar to
+the ssh\-keysend functionality. You can set also a remote user to login.
+
+Note: this module take not care about if hosts already added on remote
+authorized_keys file.
+
+
+.SS ping [ping_opts]
+This module pings the hosts which match with pattern host
+and return the latency. If fails a error message is returned.
+You can use here any of the options for the ping(1) command.
+
+
+.SS pubkey [key_opts]
+This module add a properly ssh key from hosts with matching pattern to
+known_hosts(5) database using ssh\-keyscan(1). The key_tops are ssh\-keyscan
+options.
+
+
+.SS rscp [\-u <user>] [scp_opts] <remote_file> [local_file]
+This module copy a file from a list of remote hosts to local host (it\'s the
+symetric command of scp, but reverse). The \-u option can set the remote
+user to logon. You can set a list of scp(1) options which will be passed to
+remote scp program when copy file to local host. The remote_file is the
+file path to be copy to here and local_file is the local path where file
+must be copy on. If local_file is not present, the file might be copied to
+working directory.
+
+
+.SS scp [\-u <user>] [scp_opts] <local_file> [remote_file]
+This module distribute a local file to a remote hosts which match with
+the pattern. You can use the \-u option to set the remote user to use,
+if not defined use the same as running dt. Also you can pass any scp(1)
+option. The local_file is the local file to copy on, and the remote file is
+the remote file (for all hosts) where the file must be put in on. You can
+copy a directory using the \-r option of scp. If remote_file is not present,
+copy to HOME.
+
+
+.SS sh [ssh_opts] <command>
+This module runs the system command passed as argument in the remote machine
+and return the output. You can use any of the ssh(1) program options as
+ssh_opts. By default use BatchMode=true, so no interactively command is
+allowed.
+
+
+.SS tag [tag_op]
+This module allow to add tags to hosts which match with specified pattern.
+You must provide a valid tag operation. You can read the dt(1) manual for
+more information about tag operations. If operation is not present, then
+the action return the present tags in matched hosts.
+
+
+.SH EXAMPLES
+Add a new host into known_hosts database:
+
+
+.nf
+$ dt newhost.mydomain host
+.fi
+Populate your public key to newhost:
+
+
+.nf
+$ dt \-T 0 exp:newhost.* key ~/.ssh/id_dsa.pub
+.fi
+Copy a file in the path /tmp/examplefile.txt from local host to the remote
+host called externalhost.mydomain, and put there in home folder of the
+user:
+
+
+.nf
+$ dt externalhost.mydomain scp /tmp/examplefile.txt
+.fi
+Do again, but now put the file in remote /tmp directory:
+
+
+.nf
+$ dt externalhost.mydomain scp /tmp/examplefile.txt /tmp
+.fi
+Do again, but now copy to all hosts with domain mydomain:
+
+
+.nf
+$ dt exp:.*mydomain scp /tmp/examplefile.txt /tmp
+.fi
+Do again, but now copy to hosts tagged as hosts_in_china:
+
+
+.nf
+$ dt tag:host_in_china scp /tmp/examplefile.txt /tmp
+.fi
+Do again, but runs only in one proccess (no\-childs):
+
+
+.nf
+$ dt \-T 0 tag:host_in_china scp /tmp/examplefile.txt /tmp
+.fi
+And now with 10 childs:
+
+
+.nf
+$ dt \-T 10 tag:host_in_china scp /tmp/examplefile.txt /tmp
+.fi
+But, hosts not in shangai:
+
+
+.nf
+$ dt \-T 10 tag:host_in_china,\-host_in_changai \
+    scp /tmp/examplefile.txt /tmp
+.fi
+Copy files from remote hosts to local (reverse copy). Copy the remote host
+file /tmp/examplefile.txt to local /tmp:
+
+
+.nf
+$ dt externalhost.mydomain rscp /tmp/examplefile.txt /tmp
+.fi
+
+.SH RETURN VALUES
+The \fIdt\fP returns zero when command is sucessfully running, or other value
+when error. The error code 2 means an error with arguments, and the value
+3 means an error in module.
+
+
+.SH OUTPUT
+The output uses the OMNI format, that is:
+
+
+.nf
+{okay|fail}::dt:<command>:<message>
+.fi
+It\'s easy to parse with cut(1) and awk(1). The new line symbol in output is
+scaped.
+
+
+.SH FILES
+.INDENT 0.0
+
+.TP
+.B ~/.ssh/known_hosts
+This file is used as master host database for \fPdt\fP.
+
+.UNINDENT
+
+.SH ENVIRONMENT
+.INDENT 0.0
+
+.TP
+.B DTOOLS_LIB
+By default \fPdt\fP search for command modules in /usr/lib/dtools
+directory, but if this variable is present, search in the path provide
+as content.
+
+.UNINDENT
+
+.SH RELATED PROJECTS
+.INDENT 0.0
+
+.IP \(bu 2
+PyDSH \- \fI\%http://pydsh.sourceforge.net/index.php\fP
+
+
+.IP \(bu 2
+DCMD \- \fI\%http://sourceforge.net/projects/dcmd\fP
+
+
+.IP \(bu 2
+DSH \- \fI\%http://sourceforge.net/projects/dsh\fP
+
+
+.IP \(bu 2
+DSSH \- \fI\%http://dssh.subverted.net/\fP
+
+.UNINDENT
+
+.SH SEE ALSO
+.INDENT 0.0
+.INDENT 3.5
+ssh(1)
+
+.UNINDENT
+.UNINDENT
+
+.SH AUTHOR
+Andres J. Diaz <ajdiaz@connectical.com>
+
+.\" Generated by docutils manpage writer on 2008-12-30 22:13.
+.\" 

@@ -33,7 +33,7 @@ run ()
 	ssh-keyscan "$@" "$h" 2>/dev/null >> "${dt_lst}"
 }
 
-help "usage: key [key_opts]
+help "usage: pubkey [key_opts]
 
 This module add a properly ssh key from hosts with matching pattern to
 known_hosts(5) database using ssh-keyscan(1). The key_tops are ssh-keyscan
