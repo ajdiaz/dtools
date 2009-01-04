@@ -39,7 +39,8 @@ run ()
 	ssh -oBatchMode=yes "${a[@]}" "${u}@${h}" "$@"
 }
 
-help "usage: sh [ssh_opts] <command>
+help "execute a command in remote hosts" \
+"usage: sh [ssh_opts] <command>
 
 This module runs the system command passed as argument in the remote machine
 and return the output. You can use any of the ssh(1) program options as

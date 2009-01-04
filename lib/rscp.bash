@@ -43,7 +43,8 @@ run ()
 		"-q" "${a[@]}" "${1}" "${LOGNAME:-${u}}@${l}:${2:-$PWD}"
 }
 
-help "usage: rscp [-u <user>] [scp_opts] <remote_file> [local_file]
+help "reverse scp from host to local machine" \
+"usage: rscp [-u <user>] [scp_opts] <remote_file> [local_file]
 
 This module copy a file from a list of remote hosts to local host (it's the
 symetric command of scp, but reverse). The -u option can set the remote user

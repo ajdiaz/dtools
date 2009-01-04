@@ -39,7 +39,8 @@ run ()
 	scp -q "${a[@]}" "${1}" "${u}@${h}:${2}"
 }
 
-help "usage: scp [-u <user>] [scp_opts] <local_file> [remote_file]
+help "classic scp copy to hosts" \
+"usage: scp [-u <user>] [scp_opts] <local_file> [remote_file]
 
 This module distribute a local file to a remote hosts which match with
 the pattern. You can use the -u option to set the remote user to use,

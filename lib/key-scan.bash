@@ -23,6 +23,7 @@ run ()
 {
 	local h="$1"; shift
 	req ssh-keyscan || E=3 err $"cannot found required binary ssh-keyscan"
+	req ping || E=3 err $"cannot found required binary ping"
 
 	# If host already in known_hosts fails, but not abort
 	if grep -q -e "^$h[,[:space:]]" -e "^.*,$h[:space:]" "${dt_lst}"; then
@@ -30,10 +31,14 @@ run ()
 		return 1
 	fi
 
-	ssh-keyscan "$@" "$h" 2>/dev/null >> "${dt_lst}"
+	# Since ssh-keyscan do not check if host is up, do a ping first.
+	if ping -c 1 "$h"  >/dev/null ; then
+		ssh-keyscan "$@" "$h" 2>/dev/null >> "${dt_lst}"
+	fi
 }
 
-help "usage: pubkey [key_opts]
+help "add key from host to known_host database" \
+"usage: key-scan [key_opts]
 
 This module add a properly ssh key from hosts with matching pattern to
 known_hosts(5) database using ssh-keyscan(1). The key_tops are ssh-keyscan

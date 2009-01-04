@@ -38,21 +38,38 @@ patterns:
   tag:X    match hosts with tag operation X (RTFM)
 
 options:
-  -h X   display this help about X or this help screen.
+  -h X   display this help about X command or this help screen.
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
+  -t X   use theme X to the output.
   -T X   use X threads (really use fork).
   -N     supress color output
-
-Andrés J. Díaz <ajdiaz@connectical.com>
 "
 show_help () {
 	if [ "$1" ] ; then
 		lib "$1.bash" || E=1 err $"invalid command or internal command error"
 	fi
 	echo "$str_help"
+	show_cmds
 }
-help () { str_help="$1"; }
+show_cmds () {
+	echo "commands:"
+	for file in ${DTOOLS_LIB}/*.bash; do
+		source "$file" 2>/dev/null >/dev/null
+		local file="$(basename $file)"
+		local file="${file%.bash}"
+		printf "  %-10s%s\n" "$file" "$str_sort"
+	done
+	echo
+}
+help () {
+	if [ "$2" ] ; then
+		str_help="$2"
+		str_sort="$1"
+	else
+		str_help="$1"
+	fi
+}
 
 # Parsing command line options in first place, this will be in the first
 # argument, because module arguments can contains also options in the same
@@ -62,6 +79,7 @@ while [[ "$1" == -* ]]; do
 		-h) show_help "$2" && exit 0 ;;
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
+		-t) opt_t="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
 		-N) opt_N=false;;
 		-*) E=2 err $"unknown option $1"
@@ -79,8 +97,21 @@ if cap colors && ${opt_N:-true}; then
 	G=$'\e[32;1m'
 fi
 
+# Set the default theme variables. You can add your themes in lib/themes/
+# directory overriding this functions, and loading the theme with -t option
+# in command line. Read more in dt(1) man page or in project wiki.
+okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3"; }
+fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3" >&2 ; }
+show () { cat ; }
+
+# Load specified theme if present with -t option.
+if [ "${opt_t}" ] ; then
+	lib "themes/$opt_t.bash" || E=1 err $"internal error in theme"
+fi
+
 # Define some internals variables, including default module extensions,
 # default known_host database file and so on.
+dt="$(basename $0)"
 dt_lst=${opt_H:-~/.ssh/known_hosts}
 dt_ptr="$1" ; shift
 dt_cmd="$1" ; shift
@@ -103,36 +134,40 @@ dt_evl ()
 dt_evl_exp ()
 {
 	local ret=''
+	local aux=''
 
-	ret="$(egrep -o "^$1[,]*[[:space:]]*" <(cut -d' ' -f1 "${dt_lst}"))" ||
-	ret="$(egrep -o "^,$1$"  <(cut -d' ' -f1 "${dt_lst}"))"
+	ret=(
+			$(egrep -o "^$1[,]*$" <(cut -d' ' -f1 "${dt_lst}"))
+			$(egrep -o "^,$1$"  <(cut -d' ' -f1 "${dt_lst}"))
+		)
 
-	echo "${ret%%,*}"
+	echo "${ret[@]%%,*}"
 }
 
 dt_evl_tag ()
 {
 	local ret=''
-	local exp=1
+	local exp='[[ ( 1 == 1 )'
+	local tag=
 
 	# tags operations are not trivial to parse, please check the reference
 	# manual for more information about tag expressions.
 	IFS=','
 	for tag in $1 ; do
 		case "$tag" in
-			+*) exp="$exp '|' '(' "\$tag" ':' '${tag#+}' ')'" ;;
-			-*) exp="$exp '&' '(' '(' "\$tag" ':' '${tag#-}' ')' '!=' '1' ')'" ;;
-			**) exp="$exp '&' '('  "\$tag" ':' '$tag' ')'" ;;
+			+*) exp="$exp || ( \$tag =~ '${tag#+}' )" ;;
+			-*) exp="$exp && ! ( \$tag =~ '${tag#-}' )" ;;
+			**) exp="$exp && ( \$tag =~ '${tag}' )" ;;
 		esac
 	done
+	exp="$exp ]]"
 
 	IFS=' '
 	while read host ssh key tag; do
 		tag="${tag#tag:}"
 		[ "$tag" ] || continue
-		if [ "$tag" ] && eval expr ${exp} > /dev/null ; then
+		eval ${exp} &&
 			ret="$ret ${host%%,*}"
-		fi
 	done < "${dt_lst}"
 	echo "${ret}"
 	exit 0;
@@ -153,7 +188,7 @@ hosts=( $(dt_evl "$dt_ptr") )
 # if pretend is enabled then display hosts and exit successfully.
 if ${opt_p:-false}; then
 	for h in "${hosts[@]}" ; do
-		echo "${G}okay${N}::$(basename $0):pretend:$dt_cmd:${H}${h}${N}"
+		okay "pretend:$dt_cmd" "${h}"
 	done
 	exit 0
 fi
@@ -170,8 +205,8 @@ let dt_cnt=0
 dt_run () {
 	local h="$1" ; shift
 	ret="$(run "${h}" "$@" 2>&1)" &&
-		echo "${G}okay${N}::$(basename $0):$dt_cmd:${H}${h}${N}:${ret//$'\n'/\\n}" ||
-		echo "${R}fail${N}::$(basename $0):$dt_cmd:${H}${h}${N}:${ret//$'\n'/\\n}"
+		okay "$dt_cmd" "${h}" "${ret//$'\n'/\\n}" ||
+		fail "$dt_cmd" "${h}" "${ret//$'\n'/\\n}"
 }
 
 for h in "${hosts[@]}" ; do
@@ -190,6 +225,8 @@ for h in "${hosts[@]}" ; do
 		wait
 		let dt_cnt=0
 	fi
-done
+done | show
 
 wait
+
+

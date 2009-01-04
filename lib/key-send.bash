@@ -21,6 +21,7 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
+	wait # Invalidate threading support
 	local u="${LOGNAME}"
 	local a=()
 	local h="$1" ; shift
@@ -36,17 +37,16 @@ run ()
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	local opt=
-	if ${op_T:-false} ; then
-		local opt="-oBatchMode=yes"
-	fi
-
-	cat "${a[@]}" 2>/dev/null |
-	ssh $opt "${u}@${h}" \
-		"mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+	cat "${@}" |
+	ssh "${a[@]}" "${u}@${h}" \
+		"mkdir -p ~/.ssh &&
+		cat >> ~/.ssh/authorized_keys &&
+		chmod 644 ~/.ssh/authorized_keys"
 }
 
-help "usage: key [-u <user>] <key_file>+
+
+help "distribute a public key in hosts" \
+"usage: key-send [-u <user>] <key_file>+
 
 This module adds the public key file passed as argument into remote
 authorized_keys for hosts with match with pattern. This module is similar to

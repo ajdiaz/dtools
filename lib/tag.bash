@@ -88,7 +88,8 @@ _tag_list ()
 	echo "${tags//,/:}"
 }
 
-help "usage: tag [tag_op]
+help "manage tagging features" \
+"usage: tag [tag_op]
 
 This module allow to add tags to hosts which match with specified pattern.
 You must provide a valid tag operation. You can read the dt(1) manual for

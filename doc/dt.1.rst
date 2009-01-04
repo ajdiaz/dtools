@@ -57,6 +57,11 @@ OPTIONS
     By default **dt** uses the ``known_hosts`` files provided by ssh(1), but
     you can specify another file in the same format using this option.
 
+-t <theme>
+    Use specified theme as output theme for **dt**. By default use OMNI
+    compatible theme, separated by two colons. Read the `THEMES`_ section
+    below for more information.
+
 -T <number>
     Dispatch the command in the specified number of threads (really use
     fork(2)).
@@ -82,8 +87,8 @@ You can operate with tags, with normal boolean operations: AND, OR, MINUS:
 COMMANDS
 ========
 
-key [-u <user>] <key_file>+
----------------------------
+key-send [-u <user>] <key_file>+
+--------------------------------
 
 This module adds the public key file passed as argument into remote
 authorized_keys for hosts with match with pattern. This module is similar to
@@ -99,8 +104,8 @@ This module pings the hosts which match with pattern host
 and return the latency. If fails a error message is returned.
 You can use here any of the options for the ping(1) command.
 
-pubkey [key_opts]
------------------
+key-scan [key_opts]
+-------------------
 
 This module add a properly ssh key from hosts with matching pattern to
 known_hosts(5) database using ssh-keyscan(1). The key_tops are ssh-keyscan
@@ -145,16 +150,34 @@ You must provide a valid tag operation. You can read the dt(1) manual for
 more information about tag operations. If operation is not present, then
 the action return the present tags in matched hosts.
 
+THEMES
+======
+
+By default the **dt** output format is OMNI compatible, it's easy to parse
+and easy to read by humans, but in some situations (for example when command
+returns a long number of lines) we need other format to keep the results
+human-readable. So, you can specify another theme using the -t option in
+command line. There are a list of core themes:
+
+* *status_group*  The status group theme grouping the results by their
+  return status (okay or fail), and it's usefull for commands with short
+  response (like ping).
+
+* *host_group*  The host group theme grouping the results by the host, this
+  is esentially the same as default theme, but evaluate new line symbols and
+  it's very usefull when a command return among of results, for example
+  a remote cat of file or similar.
+
 EXAMPLES
 ========
 
-Add a new host into known_hosts database::
+Scan for a new host and add his public key into  known_hosts database::
 
-    $ dt newhost.mydomain host
+    $ dt newhost.mydomain key-scan
 
 Populate your public key to newhost::
 
-    $ dt -T 0 exp:newhost.* key ~/.ssh/id_dsa.pub
+    $ dt -T 0 exp:newhost.* key-send ~/.ssh/id_dsa.pub
 
 Copy a file in the path /tmp/examplefile.txt from local host to the remote
 host called externalhost.mydomain, and put there in home folder of the
@@ -192,6 +215,15 @@ file /tmp/examplefile.txt to local /tmp::
 
     $ dt externalhost.mydomain rscp /tmp/examplefile.txt /tmp
 
+Do a ping to two hosts, but use multihost feature::
+
+    $ dt externalhost1.mydomain,externahost2.mydomain ping
+
+Do a ping to all and print the results grouping by status::
+
+    $ dt -t status_group exp:.* ping
+
+
 RETURN VALUES
 =============
 
@@ -208,6 +240,8 @@ The output uses the OMNI format, that is::
 
 It's easy to parse with cut(1) and awk(1). The new line symbol in output is
 scaped.
+
+You can use specific themes related in `THEMES`_ section of this manual.
 
 FILES
 =====
@@ -234,5 +268,5 @@ RELATED PROJECTS
 SEE ALSO
 ========
 
-    ssh(1)
+    ssh(1), ssh-keyscan(1)
 

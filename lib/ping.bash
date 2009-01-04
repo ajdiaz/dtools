@@ -36,10 +36,11 @@ run ()
 	while read x y z t; do
 		[ "$t" ] && echo "${t# time }"
 	done <<<"$r"
-
+	return 0
 }
 
-help "usage: ping [ping_opts]
+help "ping hosts" \
+"usage: ping [ping_opts]
 
 This module pings the hosts which match with pattern host
 and return the latency. If fails a error message is returned.
