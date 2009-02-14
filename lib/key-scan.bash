@@ -26,14 +26,37 @@ run ()
 	req ping || E=3 err $"cannot found required binary ping"
 
 	# If host already in known_hosts fails, but not abort
-	if grep -q -e "^$h[,[:space:]]" -e "^.*,$h[:space:]" "${dt_lst}"; then
-		echo "already known"
+	if grep -q -e "^$h[,[:space:]]" \
+			   -e "^.*,$h[:space:]" "${dt_lst}" 2>/dev/null
+	then
+		echo $"already known"
 		return 1
 	fi
 
-	# Since ssh-keyscan do not check if host is up, do a ping first.
-	if ping -c 1 "$h"  >/dev/null ; then
-		ssh-keyscan "$@" "$h" 2>/dev/null >> "${dt_lst}"
+	if [ -r "${dt_lst}" ]; then
+		read wc_prev file <<<"$(wc -l "${dt_lst}")"
+	else
+		wc_prev=0
+	fi
+
+	# XXX keyscan only works with SSH2. This is a default hardcoded
+	# configuration due to security considerations. If you need SSH
+	# 1 enabled, then set the properly value for the -t argument in
+	# ssh-keyscan caller.
+	ssh-keyscan -trsa,dsa "$@" "$h" 2>/dev/null >> "${dt_lst}"
+
+	if [ -r "${dt_lst}" ]; then
+		read wc_last file <<<"$(wc -l "${dt_lst}")"
+	else
+		wc_last=0
+	fi
+
+	if [ "$wc_prev" -eq "$wc_last" ]; then
+		echo $"unable to retrieve keys"
+		return 1
+	else
+		echo "$(( $wc_last - $wc_prev))" $"key(s) retrieved"
+		return 0
 	fi
 }
 

@@ -16,6 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 LC_ALL=C; LANG=C; export LANG LC_ALL
 
@@ -26,6 +27,8 @@ req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
+ren () { echo -n "$2_";declare -f $1; }
+use () { lib "$1" ; eval "$(ren run ${1%.*})"; }
 
 # Set the help string message which will be appear when we will call the
 # script using the -h option in command line. Check parsing options block
@@ -100,8 +103,13 @@ fi
 # Set the default theme variables. You can add your themes in lib/themes/
 # directory overriding this functions, and loading the theme with -t option
 # in command line. Read more in dt(1) man page or in project wiki.
-okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3"; }
-fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3" >&2 ; }
+if tty 2>/dev/null >/dev/null ; then
+	exec 3>$(tty)
+else
+	exec 3>/dev/null
+fi
+okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3"  >&3 ; }
+fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3"  >&2 ; }
 show () { cat ; }
 
 # Load specified theme if present with -t option.
@@ -116,6 +124,12 @@ dt_lst=${opt_H:-~/.ssh/known_hosts}
 dt_ptr="$1" ; shift
 dt_cmd="$1" ; shift
 
+# Ensure that known_hosts exists
+if [ ! -d "${dt_lst}" ] ; then
+	mkdir -p $(dirname "${dt_lst}")
+	touch "${dt_lst}"
+fi
+
 # Here are defined evaluations functions for host pattern included in
 # command line. We support for regular expressions (using exp:<regexp>), and
 # tags defined in known_hosts (by the tag:<tagop> format).
@@ -124,11 +138,16 @@ dt_cmd="$1" ; shift
 # like sqlite:<sentence> or similar.
 dt_evl ()
 {
+	local hosts=()
 	case "$1" in
-		exp:*) dt_evl_exp "${1#exp:}" ;;
-		tag:*) dt_evl_tag "${1#tag:}" ;;
-		*) echo "${1//,/ }"
+		exp:*) hosts=( $(dt_evl_exp "${1#exp:}") ) ;;
+		tag:*) hosts=( $(dt_evl_tag "${1#tag:}") ) ;;
+		*) hosts=( "${1//, }" )
 	esac
+
+	for h in "${hosts[@]}"; do
+		echo "$h"
+	done
 }
 
 dt_evl_exp ()
@@ -182,13 +201,14 @@ fun run ||
 	E=1 err $"internal command error"
 
 # Evaluate the host pattern calling evaluation functions described below to
-# obtain an array of affected hosts.
-hosts=( $(dt_evl "$dt_ptr") )
+# obtain an array of affected hosts. Due to bug #57 we need to keep only one
+# hot for duplicated keys.
+hosts=( $(dt_evl "$dt_ptr" | sort -u) )
 
 # if pretend is enabled then display hosts and exit successfully.
 if ${opt_p:-false}; then
 	for h in "${hosts[@]}" ; do
-		okay "pretend:$dt_cmd" "${h}"
+		okay "$dt_cmd:PRETENDING" "${h}"
 	done
 	exit 0
 fi
@@ -225,7 +245,7 @@ for h in "${hosts[@]}" ; do
 		wait
 		let dt_cnt=0
 	fi
-done | show
+done #| show
 
 wait
 

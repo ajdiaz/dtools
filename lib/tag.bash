@@ -28,7 +28,7 @@ run ()
 		return 0
 	fi
 
-	IFS=','
+	export IFS=','
 	for tag in $1 ; do
 		case "$tag" in
 

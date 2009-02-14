@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - lib/rscp.bash
+# Distributed Tools - dtools - lib/sudo.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,13 +21,12 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local a=()
-	local h="$1" ; shift
-	local l="${HOSTNAME:-$(hostname -f 2>/dev/null)}"
+	wait # Prevent child executions
 
-	[ "$l" ] || E=3 err $"cannot get FQDN of local hostname"
-	req ssh  || E=3 err $"cannot found required binary ssh"
+	local u="${LOGNAME}"
+	local h="$1" ; shift
+
+	req ssh || E=3 err $"cannot found required binary ssh"
 
 	while [[ "$1" == -* ]]; do
 		case "$1" in
@@ -37,20 +36,18 @@ run ()
 		shift
 	done
 
-	[ $# -lt 1 ] && E=3 err $"missing arguments"
-
-	ssh -oBatchMode=true "${u:+${u}@}${h}" "scp" \
-		"-q" "${a[@]}" "${1}" "${LOGNAME:-${u}}@${l}:${2:-$PWD}"
+	ssh "${u}@${h}" "sudo" "${a[@]}" "$@"
 }
 
-help "reverse scp from host to local machine" \
-"usage: rscp [-dt:user <user>] [scp_opts] <remote_file> [local_file]
+help "execute a command in remote hosts with privilegies" \
+"usage: sudo [-dt:user <user>] [sudo_opts] <command>
 
-This module copy a file from a list of remote hosts to local host (it's the
-symetric command of scp, but reverse). The -dt:user option can set the
-remote user to logon. You can set a list of scp(1) options which will be
-passed to remote scp program when copy file to local host. The remote_file
-is the file path to be copy to here and local_file is the local path where
-file must be copy on. If local_file is not present, the file might be copied
-to working directory.
+This modules runs a command in remote hosts using sudo.
+Obviously the sudo binary must be exists in remote host. The
+sudo_opts are a list of options for sudo(1).
+
+NOTE: The -dt:user is used to set the user who connect to remote
+host, but not is necessary the same as user for sudo, you can use
+the sudo(1) option -u to do this.
 "
+

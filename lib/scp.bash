@@ -28,7 +28,7 @@ run ()
 
 	while [[ "$1" == -* ]]; do
 		case "$1" in
-			-u)  local u="$2" ; shift ;;
+			-dt:user)  local u="$2" ; shift ;;
 			-*)  a[${#a[@]}]="$1" ;;
 		esac
 		shift
@@ -40,10 +40,10 @@ run ()
 }
 
 help "classic scp copy to hosts" \
-"usage: scp [-u <user>] [scp_opts] <local_file> [remote_file]
+"usage: scp [-dt:user <user>] [scp_opts] <local_file> [remote_file]
 
 This module distribute a local file to a remote hosts which match with
-the pattern. You can use the -u option to set the remote user to use,
+the pattern. You can use the -dt:use option to set the remote user to use,
 if not defined use the same as running dt. Also you can pass any scp(1)
 option. The local_file is the local file to copy on, and the remote file is
 the remote file (for all hosts) where the file must be put in on. You can

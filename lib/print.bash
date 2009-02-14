@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - lib/sh.bash
+# Distributed Tools - dtools - lib/print.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,30 +21,12 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local a=()
-	local h="$1" ; shift
-	req ssh || E=3 err $"cannot found required binary ssh"
-
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-dt:user)  local u="$2" ; shift ;;
-			-*)  a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
-
-	[ $# -lt 1 ] && E=3 err $"missing arguments"
-
-	ssh -oBatchMode=yes "${a[@]}" "${u}@${h}" "$@"
+	return 0;
 }
 
-help "execute a command in remote hosts" \
-"usage: sh [-dt:user <user>] [ssh_opts] <command>
+help "print hosts (similar to pretend)" \
+"usage: print
 
-This module runs the system command passed as argument in the remote machine
-and return the output. You can use any of the ssh(1) program options as
-ssh_opts. By default use BatchMode=true, so no interactively command is
-allowed. The -dt:user option sets the user who connecto to remote host.
+This module evals the list of affected hosts and print the
+result. It's a dummy module.
 "
-

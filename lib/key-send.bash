@@ -29,7 +29,7 @@ run ()
 
 	while [[ "$1" == -* ]]; do
 		case "$1" in
-			-u)  local u="$2" ; shift ;;
+			-dt:user)  local u="$2" ; shift ;;
 			-*)  a[${#a[@]}]="$1" ;;
 		esac
 		shift
@@ -46,7 +46,7 @@ run ()
 
 
 help "distribute a public key in hosts" \
-"usage: key-send [-u <user>] <key_file>+
+"usage: key-send [-dt:user <user>] <key_file>+
 
 This module adds the public key file passed as argument into remote
 authorized_keys for hosts with match with pattern. This module is similar to
