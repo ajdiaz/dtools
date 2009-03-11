@@ -66,6 +66,9 @@ OPTIONS
     Dispatch the command in the specified number of threads (really use
     fork(2)).
 
+-i
+    Interactive mode, it's an alias to -T 0, that is, do not use any fork.
+
 -N
     Supress color output always.
 
@@ -87,8 +90,8 @@ You can operate with tags, with normal boolean operations: AND, OR, MINUS:
 COMMANDS
 ========
 
-key-send [-u <user>] <key_file>+
---------------------------------
+key-send [-dt:user <user>] <key_file>+
+--------------------------------------
 
 This module adds the public key file passed as argument into remote
 authorized_keys for hosts with match with pattern. This module is similar to
@@ -111,8 +114,8 @@ This module add a properly ssh key from hosts with matching pattern to
 known_hosts(5) database using ssh-keyscan(1). The key_tops are ssh-keyscan
 options.
 
-rscp [-u <user>] [scp_opts] <remote_file> [local_file]
-------------------------------------------------------
+rscp [-dt:user <user>] [scp_opts] <remote_file> [local_file]
+--------------......----------------------------------------
 
 This module copy a file from a list of remote hosts to local host (it's the
 symetric command of scp, but reverse). The -u option can set the remote
@@ -123,8 +126,8 @@ must be copy on. If local_file is not present, the file might be copied to
 working directory.
 
 
-scp [-u <user>] [scp_opts] <local_file> [remote_file]
------------------------------------------------------
+scp [-dt:user <user>] [scp_opts] <local_file> [remote_file]
+-----------------------------------------------------------
 
 This module distribute a local file to a remote hosts which match with
 the pattern. You can use the -u option to set the remote user to use,
@@ -177,7 +180,7 @@ Scan for a new host and add his public key into  known_hosts database::
 
 Populate your public key to newhost::
 
-    $ dt -T 0 exp:newhost.* key-send ~/.ssh/id_dsa.pub
+    $ dt -i exp:newhost.* key-send ~/.ssh/id_dsa.pub
 
 Copy a file in the path /tmp/examplefile.txt from local host to the remote
 host called externalhost.mydomain, and put there in home folder of the
@@ -246,7 +249,7 @@ You can use specific themes related in `THEMES`_ section of this manual.
 FILES
 =====
 
-~/.ssh/known_hosts
+~/.ssh/dt.known_hosts
     This file is used as master host database for **dt**.
 
 ENVIRONMENT
