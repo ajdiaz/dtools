@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 LC_ALL=C; LANG=C; export LANG LC_ALL
 
@@ -27,8 +26,7 @@ req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
-ren () { echo -n "$2_";declare -f $1; }
-use () { lib "$1" ; eval "$(ren run ${1%.*})"; }
+ssh () { command ssh -oUserKnownHostsFile="${dt_lst}" "$@"; }
 
 # Set the help string message which will be appear when we will call the
 # script using the -h option in command line. Check parsing options block
@@ -120,7 +118,7 @@ fi
 # Define some internals variables, including default module extensions,
 # default known_host database file and so on.
 dt="$(basename $0)"
-dt_lst=${opt_H:-~/.ssh/known_hosts}
+dt_lst=${opt_H:-~/.ssh/dt.known_hosts}
 dt_ptr="$1" ; shift
 dt_cmd="$1" ; shift
 
@@ -138,16 +136,11 @@ fi
 # like sqlite:<sentence> or similar.
 dt_evl ()
 {
-	local hosts=()
 	case "$1" in
-		exp:*) hosts=( $(dt_evl_exp "${1#exp:}") ) ;;
-		tag:*) hosts=( $(dt_evl_tag "${1#tag:}") ) ;;
-		*) hosts=( "${1//, }" )
+		exp:*) dt_evl_exp "${1#exp:}" ;;
+		tag:*) dt_evl_tag "${1#tag:}" ;;
+		*) echo "${1//,/ }"
 	esac
-
-	for h in "${hosts[@]}"; do
-		echo "$h"
-	done
 }
 
 dt_evl_exp ()
@@ -157,7 +150,7 @@ dt_evl_exp ()
 
 	ret=(
 			$(egrep -o "^$1[,]*$" <(cut -d' ' -f1 "${dt_lst}"))
-			$(egrep -o "^,$1$"  <(cut -d' ' -f1 "${dt_lst}"))
+			$(egrep -o ",$1$"  <(cut -d' ' -f1 "${dt_lst}"))
 		)
 
 	echo "${ret[@]%%,*}"
@@ -201,14 +194,13 @@ fun run ||
 	E=1 err $"internal command error"
 
 # Evaluate the host pattern calling evaluation functions described below to
-# obtain an array of affected hosts. Due to bug #57 we need to keep only one
-# hot for duplicated keys.
-hosts=( $(dt_evl "$dt_ptr" | sort -u) )
+# obtain an array of affected hosts.
+hosts=( $(dt_evl "$dt_ptr") )
 
 # if pretend is enabled then display hosts and exit successfully.
 if ${opt_p:-false}; then
 	for h in "${hosts[@]}" ; do
-		okay "$dt_cmd:PRETENDING" "${h}"
+		okay "pretend:$dt_cmd" "${h}"
 	done
 	exit 0
 fi
@@ -229,7 +221,17 @@ dt_run () {
 		fail "$dt_cmd" "${h}" "${ret//$'\n'/\\n}"
 }
 
-for h in "${hosts[@]}" ; do
+dt_filter ()
+{
+	for h in "${hosts[@]}"; do
+		echo "$h"
+	done
+}
+
+
+xhosts=( $(dt_filter | sort | uniq ) )
+
+for h in "${xhosts[@]}" ; do
 
 	# Dispatch runner if no thread configuration found, this provide
 	# a linear beahviour.
@@ -242,6 +244,7 @@ for h in "${hosts[@]}" ; do
 		((dt_cnt++))
 		dt_run "${h}" "$@" &
 	else
+		dt_run "${h}" "$@" &
 		wait
 		let dt_cnt=0
 	fi
