@@ -40,11 +40,7 @@ run ()
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	cat "${@}" |
-	ssh "${a[@]}" "${u}@${h}" \
-		"mkdir -p ~/.ssh &&
-		cat >> ~/.ssh/authorized_keys &&
-		chmod 644 ~/.ssh/authorized_keys"
+	ssh-copy-id -i "${@}" "${u}@${h}"
 }
 
 
