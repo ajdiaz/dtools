@@ -21,8 +21,6 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
-	wait # Prevent child executions
-
 	local u="${LOGNAME}"
 	local h="$1" ; shift
 
@@ -36,7 +34,7 @@ run ()
 		shift
 	done
 
-	ssh "${u}@${h}" "sudo" "${a[@]}" "$@"
+	ssh -tt "${u}@${h}" "sudo" "${a[@]}" "$@"
 }
 
 help "execute a command in remote hosts with privilegies" \
