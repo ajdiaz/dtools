@@ -16,12 +16,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+# This is a mandatory to main dt script. This mandatory key forces dt
+# to do not fork any command of this kind. Use always -i option (or -T 0)
+interactive=true
+
 # The runner is callled from main dt script, and pass one argument (the
 # first one) which contains the remote hostname, and probably a list of
 # arguments for that command passed to dt on command line.
 run ()
 {
-	wait # Invalidate threading support
 	local u="${LOGNAME}"
 	local a=()
 	local h="$1" ; shift

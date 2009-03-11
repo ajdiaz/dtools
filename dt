@@ -44,6 +44,7 @@ options:
   -p     pretend only and do nothing.
   -t X   use theme X to the output.
   -T X   use X threads (really use fork).
+  -i     interactive, an alias to -T 0
   -N     supress color output
 "
 show_help () {
@@ -82,6 +83,7 @@ while [[ "$1" == -* ]]; do
 		-H) opt_H="$2" ; shift ;;
 		-t) opt_t="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
+		-i) opt_T=0    ; shift ;;
 		-N) opt_N=false;;
 		-*) E=2 err $"unknown option $1"
 	esac
@@ -230,6 +232,11 @@ dt_filter ()
 
 
 xhosts=( $(dt_filter | sort | uniq ) )
+
+# Set interactive mode if command required it.
+if ${interactive:-false} ; then
+	dt_thr=0
+fi
 
 for h in "${xhosts[@]}" ; do
 
