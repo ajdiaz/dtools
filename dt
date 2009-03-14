@@ -16,6 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 LC_ALL=C; LANG=C; export LANG LC_ALL
 SSH_OPTS="${SSH_OPTS:--q}"
@@ -86,7 +87,7 @@ while [[ "$1" == -* ]]; do
 		-H) opt_H="$2" ; shift ;;
 		-t) opt_t="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
-		-i) opt_T=0    ; shift ;;
+		-i) opt_T=0    ;;
 		-N) opt_N=false;;
 		-*) E=2 err $"unknown option $1"
 	esac
@@ -221,6 +222,9 @@ fi
 # parallell, maybe creating a threads builtin, or port to bill.
 let dt_thr="${opt_T:-5}"
 let dt_cnt=0
+
+# Set the interactive variable properly.
+[ $dt_thr -gt 0 ] || interactive=true
 
 dt_run () {
 	local h="$1" ; shift

@@ -16,10 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# This is a mandatory to main dt script. This mandatory key forces dt
-# to do not fork any command of this kind. Use always -i option (or -T 0)
-interactive=true
-exec 3>/dev/tty
+# If module is run in interactive mode, then we need to use the file
+# descriptor 3 to present password into TTY.
+#${interactive:-false} && exec 3>/dev/
 
 # The runner is callled from main dt script, and pass one argument (the
 # first one) which contains the remote hostname, and probably a list of
@@ -42,7 +41,11 @@ run ()
 	if catch="$( ssh "${u}@${h}" "sudo" "-n" "${a[@]}" "$@" 2>&1 )" ; then
 		echo "$catch"
 	else
-		pass sudo ${h} | ssh "${u}@${h}" "sudo" "-p ''" "-S" "${a[@]}" "$@"
+		if ${interactive:-false} ; then
+			pass sudo ${h} | ssh "${u}@${h}" "sudo" "-p ''" "-S" "${a[@]}" "$@"
+		else
+			echo "$catch" && false
+		fi
 	fi
 
 }
