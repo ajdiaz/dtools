@@ -17,10 +17,7 @@ DESCRIPTION
 ===========
 
 Distributed tools, aka dtools is a suite of programs to manage remotely
-a number of UNIX systems across SSH connection. Dtools do not support (yet)
-other connection type, if you need telnet connections or similar, maybe you
-can try PyDSH or other similar projects (read the Related Projects section
-below).
+a number of UNIX systems across SSH connection.
 
 The **dt** command is the main frontend for Distributed Tools. The **dt**
 command allows you to execute the *command* passed as argument in the host
@@ -90,6 +87,13 @@ You can operate with tags, with normal boolean operations: AND, OR, MINUS:
 COMMANDS
 ========
 
+nc [nc_opts] <command>
+----------------------
+
+This command send the string provided as 'command' to remote hosts using
+a plain connection. The nc_opts is a list of valid options for BSD netcat or
+GNU netcat nc(1).
+
 key-send [-dt:user <user>] <key_file>+
 --------------------------------------
 
@@ -115,7 +119,7 @@ known_hosts(5) database using ssh-keyscan(1). The key_tops are ssh-keyscan
 options.
 
 rscp [-dt:user <user>] [scp_opts] <remote_file> [local_file]
---------------......----------------------------------------
+------------------------------------------------------------
 
 This module copy a file from a list of remote hosts to local host (it's the
 symetric command of scp, but reverse). The -u option can set the remote
@@ -144,6 +148,22 @@ This module runs the system command passed as argument in the remote machine
 and return the output. You can use any of the ssh(1) program options as
 ssh_opts. By default use BatchMode=true, so no interactively command is
 allowed.
+
+sudo [-dt:user <user>] [sudo_opts] <command>
+--------------------------------------------
+
+Eexecute a command in remote hosts with privilegies.
+
+This modules runs a command in remote hosts using sudo.
+Obviously the sudo binary must be exists in remote host. The
+sudo_opts are a list of options for sudo(1).
+
+**NOTE:** The -dt:user is used to set the user who connect to remote
+host, but not is necessary the same as user for sudo, you can use
+the sudo(1) option -u to do this.
+
+The sudo module always run in interactive mode, althought -i was
+not present in command line.
 
 tag [tag_op]
 ------------
@@ -178,7 +198,7 @@ Scan for a new host and add his public key into  known_hosts database::
 
     $ dt newhost.mydomain key-scan
 
-Populate your public key to newhost::
+Populate your public key to newhost without forks::
 
     $ dt -i exp:newhost.* key-send ~/.ssh/id_dsa.pub
 
