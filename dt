@@ -18,6 +18,7 @@
 
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 LC_ALL=C; LANG=C; export LANG LC_ALL
+SSH_OPTS="${SSH_OPTS:--q}"
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
@@ -26,7 +27,8 @@ req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
-ssh () { command ssh -oUserKnownHostsFile="${dt_lst}" "$@"; }
+ssh () { command ssh -oUserKnownHostsFile="${dt_lst}" ${SSH_OPTS} "$@"; }
+try () { "$@"; }
 
 # Set the help string message which will be appear when we will call the
 # script using the -h option in command line. Check parsing options block
@@ -110,7 +112,10 @@ else
 fi
 okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3"  >&3 ; }
 fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3"  >&2 ; }
-show () { cat ; }
+pass () { echo -n "Password ($1 in $2): " >&3 
+		  read -s pass
+		  echo >&3
+		  echo "${pass//$'\n'/}"; }
 
 # Load specified theme if present with -t option.
 if [ "${opt_t}" ] ; then
@@ -236,6 +241,8 @@ xhosts=( $(dt_filter | sort | uniq ) )
 # Set interactive mode if command required it.
 if ${interactive:-false} ; then
 	dt_thr=0
+else
+	SSH_OPTS="$SSH_OPTS -oBatchMode=yes"
 fi
 
 for h in "${xhosts[@]}" ; do

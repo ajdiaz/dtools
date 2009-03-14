@@ -19,6 +19,7 @@
 # This is a mandatory to main dt script. This mandatory key forces dt
 # to do not fork any command of this kind. Use always -i option (or -T 0)
 interactive=true
+exec 3>/dev/tty
 
 # The runner is callled from main dt script, and pass one argument (the
 # first one) which contains the remote hostname, and probably a list of
@@ -38,7 +39,12 @@ run ()
 		shift
 	done
 
-	ssh -tt "${u}@${h}" "sudo" "${a[@]}" "$@"
+	if catch="$( ssh "${u}@${h}" "sudo" "-n" "${a[@]}" "$@" 2>&1 )" ; then
+		echo "$catch"
+	else
+		pass sudo ${h} | ssh "${u}@${h}" "sudo" "-p ''" "-S" "${a[@]}" "$@"
+	fi
+
 }
 
 help "execute a command in remote hosts with privilegies" \

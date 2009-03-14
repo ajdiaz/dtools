@@ -9,7 +9,6 @@ okay () {
 
 # fail_hook (command, host, message)
 fail () {
-
 	echo -e "${R}fail${N}:$1:${H}$2${N}:$(
 	echo -e  \\n\\040 ${3//\\n/\\n\\040 } \\n)\n"
 }
