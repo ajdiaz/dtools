@@ -80,6 +80,7 @@ help () {
 # format, so getopts it not usefull here.
 while [[ "$1" == -* ]]; do
 	case "$1" in
+		-)  opt__=true ;;
 		-h) show_help "$2" && exit 0 ;;
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
@@ -223,6 +224,7 @@ let dt_cnt=0
 
 dt_run () {
 	local h="$1" ; shift
+
 	ret="$(run "${h}" "$@" 2>&1)" &&
 		okay "$dt_cmd" "${h}" "${ret//$'\n'/\\n}" ||
 		fail "$dt_cmd" "${h}" "${ret//$'\n'/\\n}"
@@ -244,6 +246,8 @@ if ${interactive:-false} ; then
 else
 	SSH_OPTS="$SSH_OPTS -oBatchMode=yes"
 fi
+
+${opt__:-false} && set -- "$@" "$(cat)"
 
 for h in "${xhosts[@]}" ; do
 
