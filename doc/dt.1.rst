@@ -162,8 +162,10 @@ sudo_opts are a list of options for sudo(1).
 host, but not is necessary the same as user for sudo, you can use
 the sudo(1) option -u to do this.
 
-The sudo module always run in interactive mode, althought -i was
-not present in command line.
+By default the sudo module runs in batch mode, so no password prompting is
+allowed, if you have a interactive sudo configuration, you need to run dt
+with -i flag (enabling the interactive mode). A -T 0 option must be works
+fine too.
 
 tag [tag_op]
 ------------
