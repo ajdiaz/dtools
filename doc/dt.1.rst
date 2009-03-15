@@ -175,6 +175,24 @@ You must provide a valid tag operation. You can read the dt(1) manual for
 more information about tag operations. If operation is not present, then
 the action return the present tags in matched hosts.
 
+tcp [-wait] <port> <string>
+---------------------------
+
+This command is similar to nc command, but use directly TCP socket, provided
+by bash (if enabled in compiled-time). This command open a TCP connection
+against the hosts over port specified in arguments and, finally, send the
+string.
+
+By default the tcp commands do not wait for a server response, but the option
+-wait change this behaviour and force dt to wait for an EOF in the connection.
+
+udp <port> <string>
+-------------------
+
+This command is similar to nc command, but use directly UDP socket, provided
+by bash (if enabled in compiled-time). This command sends UDP packets
+to the hosts over port specified in arguments.
+
 THEMES
 ======
 
