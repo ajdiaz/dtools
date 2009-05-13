@@ -45,7 +45,6 @@ options:
   -h X   display this help about X command or this help screen.
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
-  -t X   use theme X to the output.
   -T X   use X threads (really use fork).
   -i     interactive, an alias to -T 0
   -N     supress color output
@@ -85,7 +84,6 @@ while [[ "$1" == -* ]]; do
 		-h) show_help "$2" && exit 0 ;;
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
-		-t) opt_t="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
 		-i) opt_T=0    ;;
 		-N) opt_N=false;;
@@ -104,26 +102,8 @@ if cap colors && ${opt_N:-true}; then
 	G=$'\e[32;1m'
 fi
 
-# Set the default theme variables. You can add your themes in lib/themes/
-# directory overriding this functions, and loading the theme with -t option
-# in command line. Read more in dt(1) man page or in project wiki.
-if tty 2>/dev/null >/dev/null ; then
-	exec 3>$(tty)
-else
-	exec 3>/dev/null
-fi
-okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3"  >&3 ; }
-fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3"  >&2 ; }
-pass () { echo -n "Password ($1 in $2): " >&3 
-		  read -s pass
-		  echo >&3
-		  echo "${pass//$'\n'/}"; }
-
-# Load specified theme if present with -t option.
-if [ "${opt_t}" ] ; then
-	lib "themes/$opt_t.bash" || E=1 err $"internal error in theme"
-fi
-
+okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3" ; }
+fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3" ; }
 # Define some internals variables, including default module extensions,
 # default known_host database file and so on.
 dt="$(basename $0)"
@@ -225,6 +205,20 @@ let dt_cnt=0
 
 # Set the interactive variable properly.
 [ $dt_thr -gt 0 ] || interactive=true
+
+# In interactive mode set password prompt to external fd, to interactuate
+# with some modules like sudo.
+# XXX This is UNSECURE!!
+if ${interactive:-false}; then
+	exec 3>$(tty)
+
+pass () { echo -n "Password ($1 in $2): " >&3
+		  read -s pass
+		  echo >&3
+		  echo "${pass//\n/}"; }
+
+fi
+
 
 dt_run () {
 	local h="$1" ; shift

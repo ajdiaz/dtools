@@ -36,7 +36,8 @@ run ()
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	scp -q "${a[@]}" "${1}" "${u}@${h}:${2}"
+	# XXX security hole when $1 == ;
+	scp -q "${a[@]}" ${1} "${u}@${h}:${2}"
 }
 
 help "classic scp copy to hosts" \

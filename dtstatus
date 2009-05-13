@@ -1,0 +1,68 @@
+#! /bin/bash
+# Distributed Tools - dtools - dtstatus
+# Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+${DEBUG:+set -x}
+DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
+LC_ALL=C; LANG=C; export LANG LC_ALL
+
+# Some usefull functions to everybody, declared here to be accesible for all
+# script and modules. We keep here check functions and error dispatchers.
+err () { echo "${R}fail${N}::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
+req () { type -p "$1" 2>/dev/null >/dev/null; }
+lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
+cap () { tput "$1" 2>/dev/null >/dev/null; }
+
+# Define colors if capability is present in tty and if -N option is no
+# present in command line.
+if cap colors && ${opt_N:-true}; then
+	H=$'\e[0;1m'
+	N=$'\e[0;0m'
+	R=$'\e[31;1m'
+	G=$'\e[32;1m'
+fi
+
+a_okay=()
+a_fail=()
+
+oldIFS="$IFS"
+export IFS=':'
+while read -r status null dt command hostname message ; do
+	case "$status" in
+		okay) a_okay[${#a_okay[@]}]="${H}$hostname${N}:$message" ;;
+		fail) a_fail[${#a_fail[@]}]="${H}$hostname${N}:$message" ;;
+	esac
+done
+
+if [ ${#a_okay[@]} -gt 0 ]; then
+	echo "${G}okay${N}:"
+	for item in "${a_okay[@]}" ; do
+		echo -e "\t${item//\\n/\\\\n}"
+	done
+	echo
+fi
+
+
+if [ ${#a_fail[@]} -gt 0 ]; then
+	echo "${R}fail${N}:"
+	for item in "${a_fail[@]}" ; do
+		echo -e "\t${item//\\n/\\\\n}"
+	done
+	echo
+fi
+
+
