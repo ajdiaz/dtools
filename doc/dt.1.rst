@@ -55,9 +55,8 @@ OPTIONS
     you can specify another file in the same format using this option.
 
 -t <theme>
-    Use specified theme as output theme for **dt**. By default use OMNI
-    compatible theme, separated by two colons. Read the `THEMES`_ section
-    below for more information.
+    **This option is deprecated, read dtstatus(1), dthost(1) for more
+    information**
 
 -T <number>
     Dispatch the command in the specified number of threads (really use
@@ -86,6 +85,27 @@ You can operate with tags, with normal boolean operations: AND, OR, MINUS:
 
 COMMANDS
 ========
+
+add [key_opts]
+--------------
+
+Alias to key-scan.
+
+print
+-----
+
+This is a dummy command which show affected hosts.
+
+list
+----
+
+Alias to print.
+
+ipmi [-dt:user <user>] [-dt:pass <pass>] [ipmi_opts] <command> [args]+
+----------------------------------------------------------------------
+
+This command runs an IPMI command using OpenIPMI libraries and the ipmitool
+binary. The command and the arguments are the same as installed ipmitool.
 
 nc [nc_opts] <command>
 ----------------------
@@ -193,23 +213,21 @@ This command is similar to nc command, but use directly UDP socket, provided
 by bash (if enabled in compiled-time). This command sends UDP packets
 to the hosts over port specified in arguments.
 
-THEMES
-======
+FILTERING
+=========
 
 By default the **dt** output format is OMNI compatible, it's easy to parse
 and easy to read by humans, but in some situations (for example when command
 returns a long number of lines) we need other format to keep the results
-human-readable. So, you can specify another theme using the -t option in
-command line. There are a list of core themes:
+human-readable. So, for that situations, you can filtering the output using
+a single pipeline, for example::
 
-* *status_group*  The status group theme grouping the results by their
-  return status (okay or fail), and it's usefull for commands with short
-  response (like ping).
+    $ dt exp:.* command | filter
 
-* *host_group*  The host group theme grouping the results by the host, this
-  is esentially the same as default theme, but evaluate new line symbols and
-  it's very usefull when a command return among of results, for example
-  a remote cat of file or similar.
+There are a list of available filters:
+
+* dtstatus(1)
+* dthost(1)
 
 EXAMPLES
 ========
@@ -266,6 +284,10 @@ Do a ping to all and print the results grouping by status::
 
     $ dt -t status_group exp:.* ping
 
+Reboot machines using IPMI interface::
+
+    $ dt exp:.* ipmi power cycle
+
 
 RETURN VALUES
 =============
@@ -283,8 +305,6 @@ The output uses the OMNI format, that is::
 
 It's easy to parse with cut(1) and awk(1). The new line symbol in output is
 scaped.
-
-You can use specific themes related in `THEMES`_ section of this manual.
 
 FILES
 =====
@@ -311,5 +331,5 @@ RELATED PROJECTS
 SEE ALSO
 ========
 
-    ssh(1), ssh-keyscan(1)
+    ssh(1), ssh-keyscan(1), dtcli(1), dtstatus(1), dthost(1)
 
