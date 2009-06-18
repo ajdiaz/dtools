@@ -23,6 +23,8 @@ let tcp_cnt=10
 # arguments for that command passed to dt on command line.
 run ()
 {
+	[ $# -lt 2 ] && E=3 err $"missing arguments"
+
 	local h="$1" ; shift
 	req nc || E=3 err $"cannot found required binary ssh"
 
@@ -30,8 +32,6 @@ run ()
 		local wait=true
 		shift
 	fi
-
-	[ $# -lt 2 ] && E=3 err $"missing arguments"
 
 	local p="$1" ; shift
 

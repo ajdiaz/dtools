@@ -21,11 +21,11 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local h="$1" ; shift
-
 	[ $# -lt 2 ] && E=3 err $"missing arguments"
 
+	local h="$1" ; shift
 	local p="$1" ; shift
+
 	echo "$@" >/dev/udp/${h}/${p}
 }
 
