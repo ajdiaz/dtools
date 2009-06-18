@@ -138,8 +138,8 @@ dt_evl_exp ()
 	local aux=''
 
 	ret=(
-			$(egrep -o "^$1[,]*$" <(cut -d' ' -f1 "${dt_lst}"))
-			$(egrep -o ",$1$"  <(cut -d' ' -f1 "${dt_lst}"))
+			$(egrep  "^$1[,]*$" <(cut -d' ' -f1 "${dt_lst}"))
+			$(egrep  ",$1$"  <(cut -d' ' -f1 "${dt_lst}"))
 		)
 
 	echo "${ret[@]%%,*}"
