@@ -24,7 +24,7 @@ run ()
 	local u="${LOGNAME}"
 	local a=()
 	local h="$1" ; shift
-	req nc || E=3 err $"cannot found required binary ssh"
+	req nc || E=3 err $"cannot found required binary nc"
 
 	while [[ "$1" == -* ]]; do
 		case "$1" in

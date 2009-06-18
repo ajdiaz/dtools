@@ -26,7 +26,6 @@ run ()
 	[ $# -lt 2 ] && E=3 err $"missing arguments"
 
 	local h="$1" ; shift
-	req nc || E=3 err $"cannot found required binary ssh"
 
 	if [ "$1" == "-wait" ]; then
 		local wait=true
