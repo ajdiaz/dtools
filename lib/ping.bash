@@ -25,7 +25,7 @@ run ()
 	local h="$1" ; shift
 	req ping || E=3 err $"cannot found required binary ping"
 
-	r="$(ping -q -c 1 -W 5 "$@" "${h}" 2>&1)"
+	r="$(ping -q -c 1 "$@" "${h}" 2>&1)"
 
 	if [ "$?" -ne 0 ]; then
 		echo "${r#ping: }"
