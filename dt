@@ -91,6 +91,17 @@ while [[ "$1" == -* ]]; do
 	esac
 	shift
 done
+
+# Fix progname to expand to command name.
+cmd="$(basename $0)"
+case "$cmd" in
+	dt)	;;
+	dt*)
+		exp=$1 ; shift
+		set -- "$1" "${cmd#dt}" "$@"
+	;;
+	*);;
+esac
 [ $# -lt 2 ] && E=2 err $"missing arguments, almost two are required"
 
 # Define colors if capability is present in tty and if -N option is no
