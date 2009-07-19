@@ -159,6 +159,24 @@ dt_evl_exp ()
 dt_evl_tag ()
 {
 	local ret=''
+	local exp="$1"
+	local exp="${exp//-/ | grep -v  -e}"
+	local exp="${exp//+/ | grep  -e }"
+	local exp="${exp//,/ -e  }"
+	local exp="${exp//\(/\$\(grep -e }"
+	local exp="${exp//\)/"<<<\$tag ) "}"
+
+	echo "$exp" >/dev/tty
+	while read host ssh key tag; do
+		eval grep -e $exp <<<"$tag" >/dev/null && ret="$ret ${host%%,*}"
+	done < "${dt_lst}"
+
+	echo "$ret"
+}
+
+OLD_dt_evl_tag ()
+{
+	local ret=''
 	local exp='[[ ( 1 == 1 )'
 	local tag=
 
