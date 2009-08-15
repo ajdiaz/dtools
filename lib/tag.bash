@@ -23,76 +23,64 @@ run ()
 {
 	local h="$1" ; shift
 
-	if [ $# -lt 1 ]; then
-		_tag_list "$@"
-		return 0
-	fi
-
-	export IFS=','
-	for tag in $1 ; do
-		case "$tag" in
-
-			-*)
-			tag="${tag#-}"
-			if _tag_find "$h" "$tag" ; then
-				_tag_remove "$h" "$tag" || return 1
-				echo -n "$tag:"
-			fi
-			;;
-
-			**)
-			tag="${tag#+}"
-			_tag_find "$h" "$tag" && continue
-			_tag_add "$h" "$tag" || return 1
-			echo -n "$tag:"
-			;;
-		esac
+	[ $# -eq 0 ] && _tag_lst "$h" || for tag in "$@" ; do
+		_tag_mod "$h" "$tag"
 	done
-	echo
 }
 
-_tag_remove ()
+_tag_lst ()
 {
-	sed -i "/^$1[,[:space:]]/s/tag:\\(.*\\)$2[,]*/tag:\\1/g" "${dt_lst}" &&
-	sed -i "/^.*,$1[:space:]/s/tag:\\(.*\\)$2[,]*/tag:\\1/g" "${dt_lst}"
+	local arg="$1" ; shift
+	while read host ktype key tags ; do
+		local h1="${host#*,}"
+		local h2="${host%,*}"
+
+		case $arg in
+			$h1|$h2) : echo -n "${tags// /,}" && break
+		esac
+
+	done < "${dt_lst}"
+}
+
+
+_tag_del ()
+{
+	# Here is a big line :D
+	sed -i \
+		-e "s:^\\($1\\)[[:space:]]\\(.*\\)[[:space:]]\\(.*\\)[[:space:]]$2[[:space:]]:\\1 \\2 \\3 :" \
+		-e "s:^\\($1\\)[[:space:]]\\(.*\\)[[:space:]]\\(.*\\)[[:space:]]$2\$:\\1 \\2 \\3 :" \
+		"${dt_lst}"
+	sed -i \
+		-e "s:^\\(.*,$1\\)[[:space:]]\\(.*\\)[[:space:]]\\(.*\\)[[:space:]]$2[[:space:]]:\\1 \\2 \\3 :" \
+		-e "s:^\\(.*,$1\\)[[:space:]]\\(.*\\)[[:space:]]\\(.*\\)[[:space:]]$2\$:\\1 \\2 \\3 :" \
+		"${dt_lst}"
 }
 
 _tag_add ()
 {
-	if ! _tag_mark "$@"; then
-		sed -i "/^$1[,[:space:]]/s/$/ tag:$2,/g" "${dt_lst}" &&
-		sed -i "/^.*,$1[:space:]/s/$/ tag:$2,/g" "${dt_lst}"
-	else
-		sed -i "/^$1[,[:space:]]/s/$/$2,/g" "${dt_lst}" &&
-		sed -i "/^.*,$1[:space:]/s/$/$2,/g" "${dt_lst}"
-	fi
+	# Here are a big line :D
+	sed -i "s:^\\($1\\)[[:space:]]\\(.*\\):\\1 \\2 $2:" "${dt_lst}"
+	sed -i "s:^\\(.*,$1\\)[[:space:]]\\(.*\\):\\1 \\2 $2:" "${dt_lst}"
 }
 
-_tag_find ()
+_tag_mod ()
 {
-	grep -e "^$1[,[:space:]]" -e "^.*,$1[:space:]" "${dt_lst}" |
-	grep -q -e "tag:$2[,]*" -e "tag:.*,$2[,]*"
-}
-
-_tag_mark ()
-{
-	grep -e "^$1[,[:space:]]" -e "^.*,$1[:space:]" "${dt_lst}" |
-	grep -q -e "[[:space:]]tag:"
-}
-
-_tag_list ()
-{
-	read h t k tags \
-		<<<"$(grep -e "^$1[,[:space:]]" -e "^.*,$1[:space:]" "${dt_lst}")"
-	local tags="${tags#tag:}"
-	echo "${tags//,/:}"
+	local h="$1"; shift
+	local tag
+	while [ "$#" -ne 0 ]; do
+		case "$1" in
+			-*) tag="${1#-}" && _tag_del "$h" "$tag" ;;
+			 *) tag="$1" && _tag_add "$h" "$tag" ;;
+		esac
+		shift
+	done
 }
 
 help "manage tagging features" \
-"usage: tag [tag_op]
+"usage: tag [tag_to_add] [-tag_to_del]
 
 This module allow to add tags to hosts which match with specified pattern.
-You must provide a valid tag operation. You can read the dt(1) manual for
-more information about tag operations. If operation is not present, then
-the action return the present tags in matched hosts.
+If tag name is preceding with minus operation sign (-) then tag is deleted
+from hosts with match with pattern. If no tag name is providing then current
+tags are listed.
 "

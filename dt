@@ -39,7 +39,8 @@ str_help="usage:
 
 patterns:
   exp:X    use regular expression X to match involving hosts.
-  tag:X    match hosts with tag operation X (RTFM)
+  tag:X    match hosts with tag operation X (RTFM).
+  all      an alias to exp:.*, affect to all registered hosts.
 
 options:
   -h X   display this help about X command or this help screen.
@@ -139,6 +140,7 @@ dt_evl ()
 	case "$1" in
 		exp:*) dt_evl_exp "${1#exp:}" ;;
 		tag:*) dt_evl_tag "${1#tag:}" ;;
+		all)   dt_evl_exp ".*" ;;
 		*) echo "${1//,/ }"
 	esac
 }
@@ -166,7 +168,6 @@ dt_evl_tag ()
 	local exp="${exp//\(/\$\(grep -e }"
 	local exp="${exp//\)/"<<<\$tag ) "}"
 
-	echo "$exp" >/dev/tty
 	while read host ssh key tag; do
 		eval grep -e $exp <<<"$tag" >/dev/null && ret="$ret ${host%%,*}"
 	done < "${dt_lst}"
@@ -275,6 +276,13 @@ else
 fi
 
 ${opt__:-false} && set -- "$@" "$(cat)"
+
+dt_wait ()
+{
+	okay "interrupt" "" "waiting for childs..."
+	wait
+}
+trap dt_wait INT
 
 for h in "${xhosts[@]}" ; do
 
