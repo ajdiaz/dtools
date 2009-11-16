@@ -43,8 +43,8 @@ oldIFS="$IFS"
 export IFS=':'
 while read -r status null dt command hostname message ; do
 	case "$status" in
-		okay) a_okay[${#a_okay[@]}]="${H}$hostname${N}:$message" ;;
-		fail) a_fail[${#a_fail[@]}]="${H}$hostname${N}:$message" ;;
+		*okay*) a_okay[${#a_okay[@]}]="${H}$hostname${N}:$message" ;;
+		*fail*) a_fail[${#a_fail[@]}]="${H}$hostname${N}:$message" ;;
 	esac
 done
 
