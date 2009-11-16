@@ -175,35 +175,6 @@ dt_evl_tag ()
 	echo "$ret"
 }
 
-OLD_dt_evl_tag ()
-{
-	local ret=''
-	local exp='[[ ( 1 == 1 )'
-	local tag=
-
-	# tags operations are not trivial to parse, please check the reference
-	# manual for more information about tag expressions.
-	IFS=','
-	for tag in $1 ; do
-		case "$tag" in
-			+*) exp="$exp || ( \$tag =~ '${tag#+}' )" ;;
-			-*) exp="$exp && ! ( \$tag =~ '${tag#-}' )" ;;
-			**) exp="$exp && ( \$tag =~ '${tag}' )" ;;
-		esac
-	done
-	exp="$exp ]]"
-
-	IFS=' '
-	while read host ssh key tag; do
-		tag="${tag#tag:}"
-		[ "$tag" ] || continue
-		eval ${exp} &&
-			ret="$ret ${host%%,*}"
-	done < "${dt_lst}"
-	echo "${ret}"
-	exit 0;
-}
-
 # Load library according the command provided as argument, if library not
 # found or there are some error, then abort.
 lib "${dt_cmd}.bash" ||
