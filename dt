@@ -47,6 +47,7 @@ options:
   -H X   use X as known_hosts database.
   -p     pretend only and do nothing.
   -T X   use X threads (really use fork).
+  -t X   use X seconds of timeout (default:5).
   -i     interactive, an alias to -T 0
   -N     supress color output
 "
@@ -86,6 +87,7 @@ while [[ "$1" == -* ]]; do
 		-p) opt_p=true ;;
 		-H) opt_H="$2" ; shift ;;
 		-T) opt_T="$2" ; shift ;;
+		-t) opt_t="$2" ; shift ;;
 		-i) opt_T=0    ;;
 		-N) opt_N=false;;
 		-*) E=2 err $"unknown option $1"
@@ -245,6 +247,8 @@ if ${interactive:-false} ; then
 else
 	SSH_OPTS="$SSH_OPTS -oBatchMode=yes"
 fi
+
+SSH_OPTS="$SSH_OPTS -oConnectTimeout=${opt_t:-5}"
 
 ${opt__:-false} && set -- "$@" "$(cat)"
 
