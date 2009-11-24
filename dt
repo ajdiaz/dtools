@@ -19,7 +19,7 @@
 ${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 LC_ALL=C; LANG=C; export LANG LC_ALL
-SSH_OPTS="${SSH_OPTS:--q}"
+${QUIET:+SSH_OPTS="${SSH_OPTS:--q}"}
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
@@ -206,8 +206,10 @@ fi
 let dt_thr="${opt_T:-5}"
 let dt_cnt=0
 
-# Set the interactive variable properly.
-[ $dt_thr -gt 0 ] || interactive=true
+if [ $dt_thr -le 0 ]; then
+	interactive=true
+	let dt_thr=0
+fi
 
 # In interactive mode set password prompt to external fd, to interactuate
 # with some modules like sudo.

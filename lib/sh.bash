@@ -36,7 +36,10 @@ run ()
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	ssh -oBatchMode=yes "${a[@]}" "${u}@${h}" "$@"
+	if ${interactive:-false}; then
+		echo -n "$h " >&3
+	fi
+	ssh "${a[@]}" "${u}@${h}" "$@"
 }
 
 help "execute a command in remote hosts" \
