@@ -1,0 +1,179 @@
+.TH dt  "1" "2008-12-30" ""
+.SH NAME
+dt \- distributed tools
+
+.SH SYNOPSIS
+
+dt [options] <search_pattern> <command> [arguments]
+
+.SH DESCRIPTION
+Distributed tools, aka dtools is a suite of programs to manage remotely
+a number of UNIX systems across SSH connection.
+
+The \fPdt\fP command is the main frontend for Distributed Tools. The \fPdt\fP
+command allows you to execute the \fIcommand\fP passed as argument in the host
+list identified by \fIsearch_pattern\fP.
+
+.SH OPTIONS
+
+.TP
+.B \-h\ <command|pattern>, \-\-help <command|pattern>
+Print help about command or pattern passed as argument.
+
+.TP
+.B \-D <database>, \-\-db <database>
+Use the file named database as dt database instead of default one (check
+\fPFILES\fP below for more information about default files.
+
+.TP
+.B \-p, \-\-pretend
+Pretend the command execution, do not really. Its\'s usefull to check the
+affected hosts. Similar to command list.
+
+.TP
+.B \-C <coprocs>, \-\-coproc <coprocs>
+By default dt works in parallel over five hosts using coprocesses, but if you
+can using other number of coprocesses setting the properly integer value to
+this option.
+
+.TP
+.B \-T <seconds>, \-\-timeout <seconds>
+Set the timeout for ssh connections in dtools, by default dtools uses the
+timeout specified in user's ssh options.
+
+.TP
+.B \-i, \-\-interactive
+Interactive mode, it\'s an alias to \-C 0, that is, do not use any
+coprocess. This is usefull (and mandatory) when command require user input.
+
+.TP
+.B \-N, \-\-no\-color
+Supress color output always.
+
+
+.SH SEARCH PATTERN
+The host patterns using in \fPdt\fP is a filter function which operates over
+the dtools datase, which contains the list of hosts and, usually, a number
+of tags. The core patterns including are:
+
+.TP
+.B sys:<host>[,<host>]+
+Performs the command to hosts passed as argument of sys pattern
+
+.TP
+.B exp:<regex>
+Performs to hosts which match to the specified regexp(7) on dtools database.
+
+.TP
+.B tag:<tagop>
+Performs to host which match to the specified tag operation on dtools
+database. You can read more aboyt tag operatons in \fPTAG OPERATIONS\fP
+section of this manual.
+
+.TP
+.B nil:[anything]
+Always return a null list of hosts, any argument is ignored too. This is
+only usefull for testing cases.
+
+.SH COMMANDS
+The COMMANDS section in this manual is no longer available, please use
+reference in dt \-h <command>.
+
+.SH TAG OPERATIONS
+Tags are labels in hosts. You can set a number of tags to a host using
+the \fItag\fP command.
+
+You can operate with tags, with normal operations: AND, OR, MINUS:
+
+.IP \fItag1,tag2:\fI
+	Return the values which match with tag1 OR tag2.
+
+.IP \fItag1,+tag2:\fI
+	Return the values which match with tag1 AND tag2.
+
+.IP \fItag1,\-tag2:\fI
+	Return the values which match with tag1 AND NOT tag2
+
+
+.SH FILTERING
+By default the \fPdt\fP output format is OMNI compatible, it\'s easy to parse
+and easy to read by humans, but in some situations (for example when command
+returns a long number of lines) we need other format to keep the results
+human\-readable. So, for that situations, you can filtering the output using
+a single pipeline. Read man pages about dtstatus(1) and dthost(1) for more
+information.
+
+.SH EXAMPLES
+
+.TP
+Add new host to the database:
+.B dt sys:hostname add
+
+.TP
+Tag the host called "hostname" with tag "tag1":
+.B dt sys:hostname add tag1
+
+.TP
+Populate your public key (keeping in ~/.ssh/id_rsa.pub) to host called "hostname":
+.B dt sys:hostname ssh-copy-id ~/.ssh/rsa_pub
+
+.TP
+Display the memory status of hosts tagged with tag "tag1":
+.B dt tag:tag1 ssh free
+
+.TP
+Paginate the last command
+.B dt tag:tag1 ssh free | dthost
+
+.SH RETURN VALUES
+The \fIdt\fP returns zero when command is sucessfully running, or other value
+when error. The error code 2 means an error with arguments, and the value
+3 means an error in module. Finally when interrupt signal is handled, then
+return with code 130.
+
+.SH OUTPUT
+
+.TP
+The output uses the OMNI format, which is, in brief:
+.B {okay|fail}::dt:<command>:<host>:<message>
+
+.TP
+It\'s easy to parse with cut(1) and awk(1). The new line symbol in output is scaped.
+
+.SH FILES
+
+.TP
+.B ~/.dtdb
+This file is used as master host database for \fPdt\fP.
+
+.SH ENVIRONMENT
+.TP
+.B DTOOLS_LIB
+By default \fPdt\fP search for command modules in /usr/lib/dtools
+directory, but if this variable is present, search in the path provide
+as content.
+
+.SH RELATED PROJECTS
+
+.TP
+.B PyDSH
+\fI\%http://pydsh.sourceforge.net/index.php
+
+.TP
+.B DCMD
+\fI\%http://sourceforge.net/projects/dcmd
+
+.TP
+.B DSH
+\fI\%http://sourceforge.net/projects/dsh
+
+.TP
+.B DSSH
+\fI\%http://dssh.subverted.net/
+
+.SH SEE ALSO
+ssh(1), ssh\-keyscan(1), dtcli(1), dtstatus(1), dthost(1)
+
+.SH AUTHOR
+Andres J. Diaz <ajdiaz@connectical.com>
+

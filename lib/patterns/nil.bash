@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/pattern/nil.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+help "dummy pattern for none match" \
+"This pattern always return a null list of matched hosts."
+
+pattern_nil ()
+{
+	return 0
+}
+
+pattern "nil" pattern_nil
+return 0

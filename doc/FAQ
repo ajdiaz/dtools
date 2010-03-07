@@ -1,0 +1,90 @@
+Frequently Asked Questions
+==========================
+
+Q: When performs a distributed ssh over a number of hosts, I got the
+   message::
+
+   "fail::dt:ssh:anyhostname:No RSA host key is known for anyhostname and
+   you have reque\nHost key verification failed."
+
+A: When use the ssh command, you really invoke to ssh binary in background,
+   so you need to have the hosts added in your known_host database before.
+   Do "ssh-keyscan yourhost >> ~/.ssh/known_hosts" to add host key to
+   known hosts database. Also, you can simply log in manually to host
+   before. Once the key has retrieved you can use dt without problems.
+
+Q: When performs a distributed ssh over a number of hosts, I got the
+   message::
+
+   "fail::dt:ssh:127.0.0.1:Permission denied
+   (publickey,keyboard-interactive)."
+
+A: When use the ssh command, you really invoke to ssh binary in background,
+   so if you do not enabled the interactive mode (-i), dtools do not ask you
+   for password interactively, and try to connect to using public key, but
+   if this do not exists, then failed. Try to run your command with -i flag
+   or, better, send your public key to the hosts via the ssh-copy-id
+   command.
+
+Q: When performs a distributed sudo over a number of hosts, I got the
+   message::
+
+   "fail::dt:sudo:localhost:sudo: sorry, a password
+   is required to run sudo"
+
+A: You are running dtools in non-interactive mode, ssh works fine, so
+   probably you've already distributed your public key via ssh-copy-id,
+   but you have sudo configured to ask for password, so you need to
+   force dtools to be interactive yet, just add flag -i on dtools options.
+   If you want to run commands in absolutely non-interactive, please
+   add NOPASSWD option in sudo. Read sudoers(5) man page for more
+   information.
+
+Q: WTF with the format?!
+A: The dtools use an OMNI format to output data, the basics of OMNI format
+   is similar to /etc/passwd format, a columns separated by two colons.
+   There an example for dtools::
+
+   "okay::dt:ssh:host:blah"
+
+   The "okay" key (called return code) will be one of the following:
+   okay (if the dt command was successfully for host), fail (if
+   something wrong) and type if user interactively was required (only
+   in interactive mode).
+
+   The encoding (which is empty in our example) is how the data in output
+   (see below) is encoding. We only use two encodings, the empty encoding
+   which pass the output in raw, without any conversion, and the "hidden"
+   encoding, which avoid to print echo for passwords.
+
+   The dt and ssh fields indicate the command that we are running.
+
+   The host shows the host over we working.
+
+   The "blah" is the output of the command.
+
+
+Q: How to handle with spaces in arguments of remote script with script
+   command, for example::
+
+   dt sys:blah script ./myscript "one two"
+
+   instead of
+
+   dt sys:blah script ./myscript one two
+
+A: If you want to pass a white space to final script (your script) to run
+   remotely, you need to pass the argument as one argument to dt, and also
+   scape comas too (to pass correctly number of arguments to background
+   ssh), for example:
+
+   dt sys:blah script /bin/cat /etc/passwd /etc/group
+
+   will produce an output of both files (passwd and group), but
+
+   dt sys:blah script /bin/cat '\"/etc/passwd /etc/group\"'
+
+   will produce an error (file not found, because white space is considerer
+   as part of filename).
+
+

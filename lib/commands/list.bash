@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/commands/list.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+# The runner is callled from main dt script, and pass one argument (the
+# first one) which contains the remote hostname, and probably a list of
+# arguments for that command passed to dt on command line.
+run ()
+{
+	return 0;
+}
+
+help "list hosts" \
+"usage: list
+
+This module evals the list of affected hosts and print the
+result. It's a dummy module.
+"

@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/pattern/tag.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+help "match for hosts with solve the tag operation" \
+"This pattern return the hosts which solve the specific tag operation.
+A tag operation is a list of pairs tag and operation where tag is a valid
+tag string and operation is symbol to operate the tags, valid symbols are
+, (OR), - (EXCEPT) or + (AND)."
+
+pattern_tag ()
+{
+	dtdb_findtag "$1" | cut -d' ' -f1
+}
+
+pattern "tag" pattern_tag
+return 0
+

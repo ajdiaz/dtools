@@ -1,6 +1,6 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
-# Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
+# Distributed tools; http://connectical.com/projects/dtools
+# Copyright (C) 2008-2010 Andres J. Diaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,270 +16,356 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-${DEBUG:+set -x}
-DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
-LC_ALL=C; LANG=C; export LANG LC_ALL
-${QUIET:+SSH_OPTS="${SSH_OPTS:--q}"}
-
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
-err () { echo "${R}fail${N}::$(basename $0):$@" >&2  &&  ${E:+exit $E}; }
+err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
-ssh () { command ssh -oUserKnownHostsFile="${dt_lst}" ${SSH_OPTS} "$@"; }
-try () { "$@"; }
 
-# Set the help string message which will be appear when we will call the
-# script using the -h option in command line. Check parsing options block
-# below for more information about internals.
-str_help="usage:
+# Enablig debug if DEBUG environment variable is present. This will be more
+# verbose than you expect...
+${DEBUG:+set -x}
+
+# Set the default library directory for dtools, if the DTOOLS_LIB variable
+# exists in the environment is used, otherwise point to default location.
+DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
+
+# Set the default database file for dtools. TODO the database as loaders, in
+# the future other database backend must be supported too.
+DTOOLS_DB=~/.dtdb
+
+# Check that we have bash >= 4. We required new bash enhancement for
+# dtools >= 3. Prior code is bash < 4 compatible (AFAIK). Also check for
+# enhanced getopt.
+[ ${BASH_VERSINFO:-0} -ge 4 ] || E=1 err $"required bash version >= 4"
+req getopt || E=1 err $"enhanced getopt is required"
+
+# Begin the API Definition. The dtools API is divided in three parts, the
+# **message** api (based in OMNI syntax), the **command** API which will
+# be used for modules to implement actions or patterns and the **helper**
+# API, used internally.
+
+# fun: okay <command> <host> [message]
+# txt: return an OMNI okay message for command on host
+# api: message
+okay () { echo "${G}okay${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
+
+# fun: fail <command> <host> [message]
+# txt: return an ONMI fail message for command on host
+# api: message
+fail () { echo "${R}fail${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
+
+# fun: input <command> <host> [type] [message]
+# txt: ask to the user for a stdin input.
+# api: message
+input () {
+	echo -n "${Y}type${N}:$3:$dt:${B}$1${N}:${H}$2${N}:${4:+$4:}" >&3
+}
+
+# fun: pattern <label> <fun>
+# txt: define a new pattern for label passed as argument, when pattern is
+#      present on command line, then the function 'fun' is called with all
+#      values as argument, for example for label exp, and argument exp:.*,
+#      then the function 'fun' will be called with .* as argument (note that
+#      the argument is never expanded automatically.
+# api: commands
+pattern () { pattern[$1]="$2"; }
+declare -A pattern
+
+# fun: help [item]
+# txt: display a help message for item passed as argument or, if none
+#      argument is supplied print a general help message.
+# api: commands
+help() {
+	help() { echo "$2"; }
+
+	[ "$1" ] && source "${DTOOLS_LIB}/commands/$1.bash" 2>/dev/null \
+	         || source "${DTOOLS_LIB}/patterns/$1.bash" 2>/dev/null \
+	         || echo "$help"
+}
+
+# fun: list-commands
+# txt: report a list of available commands (plugins for dtools) with a tiny
+#      description line.
+# api: helper
+list-commands ()
+{
+	local f=
+	local s=
+
+	help () { s="$1"; }
+    for f in ${DTOOLS_LIB}/commands/*.bash; do
+        source "$f" 2>/dev/null >/dev/null
+        local f="${f##*/}"
+        local f="${f%.bash}"
+        [ "$f" == "*" ] && continue
+        printf "  %-21s%s\n" "$f" "$s"
+    done
+}
+
+# fun: list-patterns
+# txt: report a list of available patterns (plugins for dtools) with a tiny
+#      description line.
+# api: helper
+list-patterns ()
+{
+	local f=
+	local s=
+
+	help () { s="$1"; }
+    for f in ${DTOOLS_LIB}/patterns/*.bash; do
+        source "$f" 2>/dev/null >/dev/null
+        local f="${f##*/}"
+        local f="${f%.bash}"
+        [ "$f" == "*" ] && continue
+        printf "  %-21s%s\n" "$f" "$s"
+    done
+}
+
+# fun: dt_run <host> [arguments]
+# txt: run loaded command for host passing arguments if present.
+# api: helper
+dt_run ()
+{
+  local h="$1" ; shift
+
+  ret="$(run "${h}" "$@" 2>&1)" &&
+  	okay "$command" "${h}" "${ret//$'\n'/\\n}" ||
+  	fail "$command" "${h}" "${ret//$'\n'/\\n}"
+}
+
+# fun: dt_bye
+# txt: kill all currently working coprocs and exits with 130 status code
+#      (interrupted). This function will be used in trap.
+# api: helper
+dt_bye ()
+{
+	for pid in "${pids[@]}" ; do
+		kill "$pid" 2>/dev/null;
+	done
+
+	wait "${pids[@]}"
+	exit 130
+}
+
+# fun: dtdb_dump
+# txt: dump the dtools db file to stdout
+# api: commands
+dtdb_dump () { cat "${DTOOLS_DB:-/dev/null}"; }
+
+# fun: dtdb_host <host regex>
+# txt: return the hosts in database which matched for the specified regular
+#      expression.
+# api: commands
+dtdb_findhost ()
+{
+	while read host tags ; do
+		case "$(expr match "$host" "^$1[[:blank:]]*")" in
+			0) ;;
+			*) echo "$host $tags" ;;
+		esac
+	done < "${DTOOLS_DB:-/dev/null}"
+}
+
+# fun: dtdb_addhost <host> [tags]+
+# txt: insert the specified host and tags to the dtools database.
+# api: commands
+dtdb_addhost ()
+{
+	echo "$@" >> "${DTOOLS_DB:-/dev/null}"
+}
+
+# fun: dtdb_addtag <host regex> [tags]+
+# txt: tag the hosts which matched for the specified regular expression with
+#      tag items in arguments.
+# api: commands
+dtdb_addtag ()
+{
+	local h="$1" ; shift
+	mapfile -t DTDBTMP < "${DTOOLS_DB:-/dev/null}"
+
+	for line in "${DTDBTMP[@]}" ; do
+		read host tags <<<"$line"
+		case "$(expr match "$host" "^$h[[:blank:]]*")" in
+			0) echo "$host $tags" ;;
+			*) echo "$host $tags $@" ;;
+		esac
+	done > "${DTOOLS_DB:-/dev/null}"
+}
+
+# fun: dtdb_deltag <host regex> [tags]+
+# txt: detag the hosts which matched for the specified regular expression
+# 	   for tag items in arguments.
+# api: commands
+dtdb_deltag ()
+{
+	local h="$1" ; shift
+	mapfile -t DTDBTMP < "${DTOOLS_DB:-/dev/null}"
+
+	for line in "${DTDBTMP[@]}" ; do
+		read host tags <<<"$line"
+		# if host found
+		case "$(expr match "$host" "^$h[[:blank:]]*")" in
+			0) echo "$host $tags" ;;
+			*)
+				# remove all ocurrences of tag in line
+				local nt="${tags}"
+				for t in "$@"; do
+					nt="${nt/#$t /}"
+					nt="${nt// $t /}"
+					nt="${nt/% $t/}"
+				done
+				echo "$host $nt" ;;
+		esac
+	done > "${DTOOLS_DB:-/dev/null}"
+}
+
+
+# fun: _dtdb_findtag <-r <tag>>+
+# txt: return the hosts which are tagged for specified tag. The -r prefix
+#      reverse the search.
+# api: helper
+_dtdb_findtag ()
+{
+	shopt -s extglob
+
+	opts="$@"
+	while read host tags ; do
+		set -- $opts
+		while [ "$1" ] ; do
+			case "$1" in
+				-r|--reverse) op="!=" ; shift ; continue ;;
+			esac
+
+			eval "[[ '$1' ${op:-==} +(${tags// /|}) ]]" && echo "$host $tags"
+			unset op
+			shift
+		done
+	done | uniq
+}
+
+# fun: dtdb_findtag <tagop>
+# txt: solve a tag operation passed as argument. Valid syntax for operations
+#      is: tag[<op>tag[<op>tag]...]
+#      Where op must be: OR (,), AND (+) or EXCEPT (-).
+# api: commands
+dtdb_findtag ()
+{
+    local exp="$1"
+    local exp="${exp//-/ | _dtdb_findtag -r }"
+    local exp="${exp//+/ | -dtdb_findtag }"
+    local exp="${exp//,/ }"
+    local exp="${exp//\(/\$\(_dtdb_findtag  }"
+    local exp="${exp//\)/ }"
+	cat "${DTOOLS_DB:-/dev/stdin}" | eval _dtdb_findtag $exp
+}
+
+# The main help text which displayed on usage information. From this text
+# probably we call to list-commands function to print available commands.
+help="""usage:
   $0 [options] <pattern> <command> [arguments]+
 
-patterns:
-  exp:X    use regular expression X to match involving hosts.
-  tag:X    match hosts with tag operation X (RTFM).
-  all      an alias to exp:.*, affect to all registered hosts.
-
 options:
-  -h X   display this help about X command or this help screen.
-  -H X   use X as known_hosts database.
-  -p     pretend only and do nothing.
-  -T X   use X threads (really use fork).
-  -t X   use X seconds of timeout (default:5).
-  -i     interactive, an alias to -T 0
-  -N     supress color output
-"
-show_help () {
-	if [ "$1" ] ; then
-		lib "$1.bash" || E=1 err $"invalid command or internal command error"
-	fi
-	echo "$str_help"
-	show_cmds
-}
-show_cmds () {
-	echo "commands:"
-	for file in ${DTOOLS_LIB}/*.bash; do
-		source "$file" 2>/dev/null >/dev/null
-		local file="$(basename $file)"
-		local file="${file%.bash}"
-		printf "  %-10s%s\n" "$file" "$str_sort"
-	done
-	echo
-}
-help () {
-	if [ "$2" ] ; then
-		str_help="$2"
-		str_sort="$1"
-	else
-		str_help="$1"
-	fi
-}
+  -h X   --help X      display help about X command or this help screen.
+  -D X   --db          use X as known_hosts database.
+  -p     --pretend     pretend only and do nothing.
+  -C X   --coproc X    use X coprocs (default:5).
+  -T X   --timeout X   use X seconds of timeout (default:5).
+  -i     --interactive interactive, an alias to -C 0
+  -N     --no-color    supress color output
 
-# Parsing command line options in first place, this will be in the first
-# argument, because module arguments can contains also options in the same
-# format, so getopts it not usefull here.
-while [[ "$1" == -* ]]; do
-	case "$1" in
-		-)  opt__=true ;;
-		-h) show_help "$2" && exit 0 ;;
-		-p) opt_p=true ;;
-		-H) opt_H="$2" ; shift ;;
-		-T) opt_T="$2" ; shift ;;
-		-t) opt_t="$2" ; shift ;;
-		-i) opt_T=0    ;;
-		-N) opt_N=false;;
-		-*) E=2 err $"unknown option $1"
-	esac
-	shift
+patterns:
+$(list-patterns)
+
+commands:
+$(list-commands)"""
+
+OPTIONS=$(getopt -o "h:D:C:T:ipN" --long \
+	"help:,db:,coproc:,timeout:,interactive,pretend,no-color" -- "$@")
+
+# Abort if getopt fails to parse arguments in any way.
+if [ $? != 0 ] ; then
+	help >&2 && exit 1
+fi
+
+# Parse command line options.
+eval set -- "$OPTIONS"; dt="$(basename $0)"
+while [[ "$1" = -* ]]; do
+    case "$1" in
+    	-h|--help) help "$2"; exit 0 ;;
+    	-p|--pretend) opt_p=true  ;;
+    	-N|--no-color) opt_N=true ;;
+    	-i|--interactive) interactive=true && opt_C=0 ;;
+    	-D|--db) DTOOLS_DB="$2"   ; shift ;;
+    	-C|--coproc)  opt_C="$2"  ; shift ;;
+    	-T|--timeout) opt_T="$2"  ; shift ;;
+        --) shift ; break ;;
+        *) echo "$1" ; help >&2 && exit 1
+    esac
+    shift
 done
 
-# Fix progname to expand to command name.
-cmd="$(basename $0)"
-case "$cmd" in
-	dt)	;;
-	dt*)
-		exp=$1 ; shift
-		set -- "$1" "${cmd#dt}" "$@"
-	;;
-	*);;
-esac
-[ $# -lt 2 ] && E=2 err $"missing arguments, almost two are required"
-
-# Define colors if capability is present in tty and if -N option is no
-# present in command line.
-if cap colors && ${opt_N:-true}; then
+# Cappable colors if available for terminal and option -N is not present in
+# arguments.
+if ${opt_N:-false} ; then
+	H=
+	N=
+	R=
+	G=
+	B=
+	Y=
+elif cap colors ; then
+	# Setting colors if terminal supported them, on redirection to file
+	# a --no-color option might be provided in command line.
 	H=$'\e[0;1m'
 	N=$'\e[0;0m'
 	R=$'\e[31;1m'
 	G=$'\e[32;1m'
+	B=$'\e[34;1m'
+	Y=$'\e[33;1m'
 fi
 
-okay () { echo "${G}okay${N}::$dt:$1:${H}$2${N}:$3" ; }
-fail () { echo "${R}fail${N}::$dt:$1:${H}$2${N}:$3" ; }
-# Define some internals variables, including default module extensions,
-# default known_host database file and so on.
-dt="$(basename $0)"
-dt_lst=${opt_H:-~/.ssh/dt.known_hosts}
-dt_ptr="$1" ; shift
-dt_cmd="$1" ; shift
+# Load patterns available in library path.
+for lib in ${DTOOLS_LIB}/patterns/*.bash ; do
+	[ "$lib" = "${DTOOLS_LIB}/patterns/*.bash" ] && continue
+	source "$lib" 2>/dev/null >/dev/null || \
+		E=1 err $"internal error on pattern definition ($lib)"
+done
 
-# Ensure that known_hosts exists
-if [ ! -d "${dt_lst}" ] ; then
-	mkdir -p $(dirname "${dt_lst}")
-	touch "${dt_lst}"
-fi
+# Read the pattern passed to dt(1)
+IFS=: read pattern_key pattern_val <<< "$1" ; shift
 
-# Here are defined evaluations functions for host pattern included in
-# command line. We support for regular expressions (using exp:<regexp>), and
-# tags defined in known_hosts (by the tag:<tagop> format).
-#
-# TODO in the future we can provide a module method to add new patterns,
-# like sqlite:<sentence> or similar.
-dt_evl ()
-{
-	case "$1" in
-		exp:*) dt_evl_exp "${1#exp:}" ;;
-		tag:*) dt_evl_tag "${1#tag:}" ;;
-		all)   dt_evl_exp ".*" ;;
-		*) echo "${1//,/ }"
-	esac
-}
-
-dt_evl_exp ()
-{
-	local ret=''
-	local aux=''
-
-	ret=(
-			$(egrep  "^$1[,]*$" <(cut -d' ' -f1 "${dt_lst}"))
-			$(egrep  ",$1$"  <(cut -d' ' -f1 "${dt_lst}"))
-		)
-
-	echo "${ret[@]%%,*}"
-}
-
-dt_evl_tag ()
-{
-	local ret=''
-	local exp="$1"
-	local exp="${exp//-/ | grep -v  -e}"
-	local exp="${exp//+/ | grep  -e }"
-	local exp="${exp//,/ -e  }"
-	local exp="${exp//\(/\$\(grep -e }"
-	local exp="${exp//\)/"<<<\$tag ) "}"
-
-	while read host ssh key tag; do
-		eval grep -e $exp <<<"$tag" >/dev/null && ret="$ret ${host%%,*}"
-	done < "${dt_lst}"
-
-	echo "$ret"
-}
-
-# Load library according the command provided as argument, if library not
-# found or there are some error, then abort.
-lib "${dt_cmd}.bash" ||
-	E=1 err $"invalid command or internal command error"
-
-fun run ||
-	E=1 err $"internal command error"
-
-# Evaluate the host pattern calling evaluation functions described below to
-# obtain an array of affected hosts.
-hosts=( $(dt_evl "$dt_ptr") )
-
-# if pretend is enabled then display hosts and exit successfully.
-if ${opt_p:-false}; then
-	for h in "${hosts[@]}" ; do
-		okay "pretend:$dt_cmd" "${h}"
-	done
-	exit 0
-fi
-
-# Set and validate the threading options if it's present on command
-# line. Really bash do not handle threads properly, so we use standard
-# child proccess XXX be carefull with loadavg measurements when use
-# dtools many times, the loadavg value in shortterm can be increased
-# so much. TODO in the future search best way than fork() to run in
-# parallell, maybe creating a threads builtin, or port to bill.
-let dt_thr="${opt_T:-5}"
-let dt_cnt=0
-
-if [ $dt_thr -le 0 ]; then
-	interactive=true
-	let dt_thr=0
-fi
-
-# In interactive mode set password prompt to external fd, to interactuate
-# with some modules like sudo.
-# XXX This is UNSECURE!!
-if ${interactive:-false}; then
-	exec 3>$(tty)
-
-pass () { echo -n "Password ($1 in $2): " >&3
-		  read -s pass
-		  echo >&3
-		  echo "${pass//\n/}"; }
-
-fi
-
-
-dt_run () {
-	local h="$1" ; shift
-
-	ret="$(run "${h}" "$@" 2>&1)" &&
-		okay "$dt_cmd" "${h}" "${ret//$'\n'/\\n}" ||
-		fail "$dt_cmd" "${h}" "${ret//$'\n'/\\n}"
-}
-
-dt_filter ()
-{
-	for h in "${hosts[@]}"; do
-		echo "$h"
-	done
-}
-
-
-xhosts=( $(dt_filter | sort | uniq ) )
-
-# Set interactive mode if command required it.
-if ${interactive:-false} ; then
-	dt_thr=0
+if [ "${pattern[${pattern_key:=nil}]}" ] ; then
+	mapfile -t HOSTLIST < <(${pattern[$pattern_key]} "$pattern_val")
+elif fun pattern_sys ; then
+	mapfile -t HOSTLIST < <(pattern_sys "$pattern_key")
 else
-	SSH_OPTS="$SSH_OPTS -oBatchMode=yes"
+	E=2 err "unable to find pattern $pattern_key or sys alias missing."
 fi
 
-SSH_OPTS="$SSH_OPTS -oConnectTimeout=${opt_t:-5}"
+# Read the command passed to dt(1)
+${opt_p:-false} && command="list" || command="$1" ; shift
+lib "commands/${command}.bash" || \
+	E=2 err "unknown command ${command}, maybe you forget 'ssh' word?"
 
-${opt__:-false} && set -- "$@" "$(cat)"
+# Here begin the crazy loop and also a random function to create exotic
+# errors. :)
+trap dt_bye EXIT
+let i=0
+exec 3<&1
 
-dt_wait ()
-{
-	okay "interrupt" "" "waiting for childs..."
-	wait
-}
-trap dt_wait INT
-
-for h in "${xhosts[@]}" ; do
-
-	# Dispatch runner if no thread configuration found, this provide
-	# a linear beahviour.
-	if [ $dt_thr -eq 0 ]; then
-		dt_run "${h}" "$@"
-		continue
-	fi
-
-	if [ $dt_cnt -lt $dt_thr ]; then
-		((dt_cnt++))
-		dt_run "${h}" "$@" &
+for h in "${HOSTLIST[@]}" ; do
+	if ${interactive:-false}; then
+		dt_run "${h}" "${@}" >&3
 	else
-		dt_run "${h}" "$@" &
-		wait
-		let dt_cnt=0
+		eval "coproc dt_${h//./_} { dt_run "${h}" "${@}" ; } >&3" 2>/dev/null
+		# Save coprocs PIDs to wait for... and waiting if counter is raised.
+		pids[${#pids[@]}]="$(eval echo \${dt_${h//./_}_PID})"
+		[ ${#pids[@]} -ge ${opt_C:-5} ] && wait "${pids[@]}" && pids=()
 	fi
-done #| show
+done
 
-wait
-
-
+# Finally waits for orphan coprocs if presents
+wait "${pids[@]}"

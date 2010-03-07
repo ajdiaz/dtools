@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/pattern/exp.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+help "match for host given a regular expression" \
+"This pattern return the hosts which match for the regular expression passed
+as argument."
+
+pattern_exp ()
+{
+	[ -r ${DTOOLS_DB:-/dev/null} ] || return 0
+	while read host tags ; do
+		case "$(expr match "$host" "$1")" in
+			0) ;;
+			*) echo "$host" ;;
+		esac
+	done < ${DTOOLS_DB:-/dev/null}
+}
+
+pattern "exp" pattern_exp
+return 0
+

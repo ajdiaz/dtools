@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/pattern/sys.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+help "dummy pattern which return the string passed as argument" \
+"This pattern always return the string passed as argument as comma
+separated values, for example host1,host2 return the list composed by
+both hostnames."
+
+pattern_sys ()
+{
+	echo "${1//,/ }"
+}
+
+pattern "sys" pattern_sys
+return 0

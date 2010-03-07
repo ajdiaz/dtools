@@ -1,5 +1,5 @@
 #! /bin/bash
-# Distributed Tools - dtools - dt
+# Distributed Tools - dtools - lib/commands/ipmi.bash
 # Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,8 +16,22 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-while read host type key tag; do
-	tag="${tag#tag:}"
-	tag="${tag//,/}"
-	echo $host $tag
-done
+# The runner is callled from main dt script, and pass one argument (the
+# first one) which contains the remote hostname, and probably a list of
+# arguments for that command passed to dt on command line.
+run ()
+{
+	local h="$1" ; shift
+	req ipmitool || E=3 err $"cannot found required binary ipmitool"
+
+	ipmitool -H "$h" "$@"
+}
+
+help "manage IPMI interface on remote hosts" \
+"usage: ipmitool [args]+
+
+This command uses ipmitool(1) to send IMPI commands to remote hosts.
+The -dt:user option sets the user who connect to remote host, also the
+-dt:pass option set the IMPI password to use.
+"
+
