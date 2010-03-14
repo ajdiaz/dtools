@@ -124,6 +124,26 @@ list-patterns ()
     done
 }
 
+# fun: dt_pattern <patternlist>
+# txt: return the list of hosts with match with pattern list.
+# api: helper
+dt_pattern ()
+{
+	local other="$1"
+	let i=1
+	while [ "$other" ]; do
+		IFS=: read pattern_key pattern_val other <<< "$other"
+		if [ "${pattern[${pattern_key:=nil}]}" ] ; then
+			${pattern[$pattern_key]} "$pattern_val"
+		elif [ -z "$other" ] && [ $i -eq 0 ] && fun pattern_sys ; then
+			pattern_sys "$pattern_key"
+		else
+			E=2 err "unable to find pattern $pattern_key or sys alias missing."
+		fi
+		((i++))
+	done | sort | uniq
+}
+
 # fun: dt_run <host> [arguments]
 # txt: run loaded command for host passing arguments if present.
 # api: helper
@@ -335,15 +355,8 @@ for lib in ${DTOOLS_LIB}/patterns/*.bash ; do
 done
 
 # Read the pattern passed to dt(1)
-IFS=: read pattern_key pattern_val <<< "$1" ; shift
-
-if [ "${pattern[${pattern_key:=nil}]}" ] ; then
-	mapfile -t HOSTLIST < <(${pattern[$pattern_key]} "$pattern_val")
-elif fun pattern_sys ; then
-	mapfile -t HOSTLIST < <(pattern_sys "$pattern_key")
-else
-	E=2 err "unable to find pattern $pattern_key or sys alias missing."
-fi
+mapfile -t HOSTLIST < <(dt_pattern "$1") && shift || \
+	E=1 err $"unable to parse hostlist for patterns $1."
 
 # Read the command passed to dt(1)
 ${opt_p:-false} && command="list" || command="$1" ; shift

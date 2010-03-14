@@ -25,7 +25,6 @@ pattern_out ()
 		[ "${host:1:1}" == "#" ] && continue
 		echo "$host"
 	done
-	exec 1<&-
 
 }
 
