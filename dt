@@ -18,7 +18,7 @@
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
-err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && ${E:+exit $E}; }
+err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && eval ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
@@ -339,12 +339,22 @@ if ${opt_N:-false} ; then
 elif cap colors ; then
 	# Setting colors if terminal supported them, on redirection to file
 	# a --no-color option might be provided in command line.
-	H=$'\e[0;1m'
-	N=$'\e[0;0m'
-	R=$'\e[31;1m'
-	G=$'\e[32;1m'
-	B=$'\e[34;1m'
-	Y=$'\e[33;1m'
+	if [ "${DTOOLS_COLORS}" ]; then {
+		IFS=:
+		for color in ${DTOOLS_COLORS}; do
+			case "${color%=*}" in
+				H|N|R|G|B|Y) eval  "${color%=*}=$'\\e[${color#*=}m'"
+			esac
+		done
+		set 
+	} else
+		H=$'\e[0;1m'
+		N=$'\e[0;0m'
+		R=$'\e[31;1m'
+		G=$'\e[32;1m'
+		B=$'\e[34;1m'
+		Y=$'\e[33;1m'
+	fi
 fi
 
 # Load patterns available in library path.
