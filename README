@@ -1,0 +1,27 @@
+dtools
+======
+Distributed tools, aka dtools is a project written in bash coding to
+create a suite of programs to allow running different UNIX commands
+in parallel in a list of tagged hosts. This utility is based on
+capistrano for Ruby or fabric for Python, but in pure bash.
+
+Features
+--------
+
+* Fully written in bash, no third party software required
+  (except ssh, obviously).
+* Based in module architecture, easy to extend.
+* Full integration with ssh.
+* Easy to group hosts by tags or search by regular expression.
+* Parseable output, but human-readable
+* Thinking in system admin, no special development skills
+  required to extend the software.
+
+Short Example
+-------------
+
+    $ dt tag:linux ssh date
+    okay::dt:ssh:myhostlinux1.domain:Mon Nov 16 23:54:04 CET 2009
+    okay::dt:ssh:myhostlinux3.domain:Mon Nov 16 23:54:04 CET 2009
+    okay::dt:ssh:myhostlinux2.domain:Mon Nov 16 23:54:04 CET 2009
+
