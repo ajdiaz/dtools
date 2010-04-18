@@ -21,7 +21,7 @@ help "pattern to get hosts from external source" \
 
 pattern_out ()
 {
-	while read host; do
+	while read host trash; do
 		[ "${host:1:1}" == "#" ] && continue
 		echo "$host"
 	done
