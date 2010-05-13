@@ -383,9 +383,12 @@ for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-	    eval "coproc dt_${h//./_} { dt_run "${h}" '"${@}"' ; } >&3" 2>/dev/null
+	    npid="${h//./_}"
+	    npid="${npid//-/_}"
+	    npid="dt_${npid}"
+	    eval "coproc $npid { dt_run "${h}" '"${@}"' ; } >&3" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
-        lpid="$(eval echo \${dt_${h//./_}_PID})"
+        lpid="$(eval echo \${${npid}_PID})"
         # The coproc can finish before raised this line
         [ "$lpid" ] && pids[${#pids[@]}]="$lpid"
 		[ ${#pids[@]} -ge ${opt_C:-5} ] && wait "${pids[@]}" && pids=()
