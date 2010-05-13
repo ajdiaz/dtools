@@ -28,7 +28,7 @@ scp ()
 	[ "$rsrc" != "$fsrc" ] && remote="${remote:+$remote,}$rsrc"
 	[ "$rdst" != "$fdst" ] && remote="${remote:+$remote,}$rdst"
 
-	SSHOPTS="-oStrictHostKeyChecking=yes"
+	SSHOPTS="-oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
 		input "scp" "${remote}" "hidden"
