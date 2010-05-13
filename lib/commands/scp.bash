@@ -56,7 +56,7 @@ run ()
 		shift
 	done
 
-	[ $# -lt 1 ] && E=3 err $"missing arguments"
+	[ $# -lt 2 ] && E=3 err $"missing arguments"
 
 	scp "$1" "${u}@${h}:${2}" "${a[@]}"
 }
