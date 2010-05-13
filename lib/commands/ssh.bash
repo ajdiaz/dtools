@@ -28,7 +28,7 @@ ssh ()
 	else
 		SSHOPTS="$SSHOPTS -oBatchMode=yes"
 	fi
-	command ssh $SSHOPTS "$h" "$@"
+    eval command ssh $SSHOPTS "$h" \""$@"\"
 }
 
 # The runner is callled from main dt script, and pass one argument (the
