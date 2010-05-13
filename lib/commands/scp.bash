@@ -35,7 +35,7 @@ scp ()
 	else
 		SSHOPTS="$SSHOPTS -oBatchMode=yes"
 	fi
-	command scp -q $SSHOPTS "$@" "$fsrc" "$fdst"
+	command scp -q $SSHOPTS "$@" $fsrc $fdst
 }
 
 # The runner is callled from main dt script, and pass one argument (the
