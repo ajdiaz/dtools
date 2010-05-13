@@ -275,7 +275,7 @@ dtdb_findtag ()
 {
     local exp="$1"
     local exp="${exp//-/ | _dtdb_findtag -r }"
-    local exp="${exp//+/ | -dtdb_findtag }"
+    local exp="${exp//+/ | _dtdb_findtag }"
     local exp="${exp//,/ }"
     local exp="${exp//\(/\$\(_dtdb_findtag  }"
     local exp="${exp//\)/ }"
