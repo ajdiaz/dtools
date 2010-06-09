@@ -26,7 +26,7 @@ sudo ()
 	if ${interactive:-false} ; then
 		ssh "$h" -tt sudo -S -p \""$(input sudo $h hidden Password 3>&1)"\" "$@" >&3 
 	else
-		ssh "$h" sudo -n "$@"
+		ssh "$h" sudo "$@"
 	fi
 }
 
