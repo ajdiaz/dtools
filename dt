@@ -182,6 +182,7 @@ dtdb_dump () { cat "${DTOOLS_DB:-/dev/null}"; }
 dtdb_findhost ()
 {
 	while read host tags ; do
+	    [ "${host:0:1}" == "#" ] && continue
 		case "$(expr match "$host" "^$1[[:blank:]]*")" in
 			0) ;;
 			*) echo "$host $tags" ;;
@@ -208,6 +209,8 @@ dtdb_addtag ()
 
 	for line in "${DTDBTMP[@]}" ; do
 		read host tags <<<"$line"
+	    [ "${host:0:1}" == "#" ] && continue
+
 		case "$(expr match "$host" "^$h[[:blank:]]*")" in
 			0) echo "$host $tags" ;;
 			*) echo "$host $tags $@" ;;
@@ -226,6 +229,8 @@ dtdb_deltag ()
 
 	for line in "${DTDBTMP[@]}" ; do
 		read host tags <<<"$line"
+	    [ "${host:0:1}" == "#" ] && continue
+
 		# if host found
 		case "$(expr match "$host" "^$h[[:blank:]]*")" in
 			0) echo "$host $tags" ;;
@@ -253,6 +258,8 @@ _dtdb_findtag ()
 
 	opts="$@"
 	while read host tags ; do
+	    [ "${host:0:1}" == "#" ] && continue
+
 		set -- $opts
 		while [ "$1" ] ; do
 			case "$1" in
