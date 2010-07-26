@@ -366,12 +366,12 @@ done
 
 # Read the pattern passed to dt(1)
 mapfile -t HOSTLIST < <(dt_pattern "$1") && shift || \
-	E=1 err $"unable to parse hostlist for patterns $1."
+	E=1 err $"unable to parse hostlist for pattern ${1-null}."
 
 # Read the command passed to dt(1)
 ${opt_p:-false} && command="list" || command="$1" ; shift
 lib "commands/${command}.bash" || \
-	E=2 err "unknown command ${command:-empty}, maybe you forget 'ssh' word?"
+	E=2 err "unknown command ${command:-null}, maybe you forget 'ssh' word?"
 
 # Here begin the crazy loop and also a random function to create exotic
 # errors. :)
