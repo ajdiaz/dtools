@@ -366,12 +366,12 @@ done
 
 # Read the pattern passed to dt(1)
 mapfile -t HOSTLIST < <(dt_pattern "$1") && shift || \
-	E=1 err $"unable to parse hostlist for pattern ${1-null}."
+    E=1 err $"unable to parse hostlist for pattern ${1:-null}."
 
 # Read the command passed to dt(1)
 ${opt_p:-false} && command="list" || command="$1" ; shift
 lib "commands/${command}.bash" || \
-	E=2 err "unknown command ${command:-null}, maybe you forget 'ssh' word?"
+    E=2 err "unknown command ${command:-null}, maybe you forget 'ssh' word?"
 
 # Here begin the crazy loop and also a random function to create exotic
 # errors. :)
@@ -383,17 +383,13 @@ for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-	    npid="${h//./_}"
-	    npid="${npid//-/_}"
-	    npid="dt_${npid}"
-	    eval "coproc $npid { dt_run "${h}" '"${@}"' ; } >&3" 2>/dev/null
+		pn="${h//-/_}"
+		eval "coproc dt_${pn//./_} { dt_run "${h}" "${@}" ; } >&3" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
-        lpid="$(eval echo \${${npid}_PID})"
-        # The coproc can finish before raised this line
-        [ "$lpid" ] && pids[${#pids[@]}]="$lpid"
-		[ ${#pids[@]} -ge ${opt_C:-5} ] && wait "${pids[@]}" && pids=()
+		pids[${#pids[@]}]="$(eval echo \${dt_${pn//./_}_PID})"
+		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()
 	fi
 done
 
 # Finally waits for orphan coprocs if presents
-[ ${#pids[@]} -ne 0 ] && wait "${pids[@]}"
+wait "${pids[@]}"
