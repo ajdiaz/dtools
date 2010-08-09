@@ -21,6 +21,8 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
+    echo "${USERNAME:-null}"
+    echo "::$1"
 	return 0;
 }
 

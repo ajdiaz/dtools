@@ -181,13 +181,64 @@ dtdb_dump () { cat "${DTOOLS_DB:-/dev/null}"; }
 # api: commands
 dtdb_findhost ()
 {
-	while read host tags ; do
-	    [ "${host:0:1}" == "#" ] && continue
-		case "$(expr match "$host" "^$1[[:blank:]]*")" in
-			0) ;;
-			*) echo "$host $tags" ;;
-		esac
-	done < "${DTOOLS_DB:-/dev/null}"
+    if [ ${#HOSTLIST[@]} -eq 0 ]; then
+        while read host tags ; do
+            [ "${host:0:1}" == "#" ] && continue
+            host="${host#@}"
+            case "$(expr match "$host" "^$1[[:blank:]]*")" in
+                0) ;;
+                *) echo "$host $tags" ;;
+            esac
+        done < "${DTOOLS_DB:-/dev/null}"
+    else
+        for line in "${HOSTLIST[@]}"; do
+            read host tags <<<"$line"
+            [ "${host:0:1}" == "#" ] && continue
+            host="${host#@}"
+            case "$(expr match "$host" "^$1[[:blank:]]*")" in
+                0) ;;
+                *) echo "$host $tags" ;;
+            esac
+        done
+    fi
+}
+
+# fun: dtdb_finduser <host regex>
+# txt: return the username associated with specified host, or the value of
+#      environmemt $LOGNAME if none found.
+# api: commands
+dtdb_finduser ()
+{
+    if [ ${#HOSTLIST[@]} -eq 0 ]; then
+        while read host tags ; do
+            [ "${host:0:1}" == "#" ] && continue
+            user="${host%%@*}"
+            host="${host#@}"
+
+            [ "$user" = "$host" ] && user="${LOGNAME:-$(who am i)}"
+
+            case "$(expr match "$host" "^$1[[:blank:]]*")" in
+                0) ;;
+                *) echo "$user"; return 0 ;;
+            esac
+        done < "${DTOOLS_DB:-/dev/null}"
+        echo "$user"
+    else
+        for line in "${HOSTLIST[@]}"; do
+            read host tags <<<"$line"
+            [ "${host:0:1}" == "#" ] && continue
+            user="${host%%@*}" 
+            host="${host#@}"
+
+            [ "$user" = "$host" ] && user="${LOGNAME:-$(who am i)}"
+
+            case "$(expr match "$host" "^$1[[:blank:]]*")" in
+                0) ;;
+                *) echo "$user"; return 0 ;;
+            esac
+        done
+        echo "$user"
+    fi
 }
 
 # fun: dtdb_addhost <host> [tags]+
@@ -210,6 +261,7 @@ dtdb_addtag ()
 	for line in "${DTDBTMP[@]}" ; do
 		read host tags <<<"$line"
 	    [ "${host:0:1}" == "#" ] && continue
+		host="${host#*@}"
 
 		case "$(expr match "$host" "^$h[[:blank:]]*")" in
 			0) echo "$host $tags" ;;
@@ -230,6 +282,7 @@ dtdb_deltag ()
 	for line in "${DTDBTMP[@]}" ; do
 		read host tags <<<"$line"
 	    [ "${host:0:1}" == "#" ] && continue
+	    host="${host#@}"
 
 		# if host found
 		case "$(expr match "$host" "^$h[[:blank:]]*")" in
@@ -259,6 +312,7 @@ _dtdb_findtag ()
 	opts="$@"
 	while read host tags ; do
 	    [ "${host:0:1}" == "#" ] && continue
+	    host="${host#@}"
 
 		set -- $opts
 		while [ "$1" ] ; do
@@ -375,6 +429,8 @@ done
 mapfile -t HOSTLIST < <(dt_pattern "$1") && shift || \
     E=1 err $"unable to parse hostlist for pattern ${1:-null}."
 
+export HOSTLIST
+
 # Read the command passed to dt(1)
 ${opt_p:-false} && command="list" || command="$1" ; shift
 lib "commands/${command}.bash" || \
@@ -391,7 +447,8 @@ for h in "${HOSTLIST[@]}" ; do
 		dt_run "${h}" "${@}" >&3
 	else
 		pn="${h//-/_}"
-		eval "coproc dt_${pn//./_} { dt_run "${h}" "${@}" ; } >&3" 2>/dev/null
+		pn="${pn//@/_}"
+		eval "coproc dt_${pn//./_} { USERNAME="$(dtdb_finduser "$h")" dt_run "${h}" "${@}" ; } >&3" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
 		pids[${#pids[@]}]="$(eval echo \${dt_${pn//./_}_PID})"
 		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()
