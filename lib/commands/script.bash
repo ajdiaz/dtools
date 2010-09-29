@@ -22,6 +22,7 @@ lib "commands/ssh.bash" || \
 lib "commands/scp.bash" || \
 	E=2 err $"script module depends of scp"
 
+
 # The runner is callled from main dt script, and pass one argument (the
 # first one) which contains the remote hostname, and probably a list of
 # arguments for that command passed to dt on command line.
@@ -42,9 +43,15 @@ run ()
 	done
 
 	local s="$1"; shift
-	scp "$s" "${u}@${h}:.dt.script.$$" &&
-		ssh "${u}@${h}" "${a[@]}" "chmod 755 .dt.script.$$ &&
-		./.dt.script.$$ ${@} ; rm -f .dt.script.$$"
+	local shabang="$( head -1 "${s}" )"
+
+    if [ "$shabang" != "${shabang#\#!}" ]; then
+        local shabang="${shabang#\#!}"
+    else
+        local shabang=/bin/sh
+    fi
+
+	cat "$s" | ssh "${u}@${h}" "$shabang"
 }
 
 help "execute a local script in remote hosts" \
