@@ -25,3 +25,18 @@ Short Example
     okay::dt:ssh:myhostlinux3.domain:Mon Nov 16 23:54:04 CET 2009
     okay::dt:ssh:myhostlinux2.domain:Mon Nov 16 23:54:04 CET 2009
 
+Create own commands
+-------------------
+
+Usually the sysadmin works involves large and hard  maintenance tasks, more
+of them can be easily automated by a single script, to work this taks, dt
+includes since version 3.1 the command *script*. So lets suppose that you
+have an script that create a number of users, for example. Then you can
+run
+
+    $ dt tag:linux script create_users.sh
+    okay::dt:ssh:myhostlinux1.domain:created users joe, eve, bob
+    okay::dt:ssh:myhostlinux2.domain:created users joe, eve, bob
+    okay::dt:ssh:myhostlinux3.domain:created users joe, eve, bob
+
+
