@@ -22,6 +22,18 @@ lib "commands/ssh.bash" || \
 lib "commands/scp.bash" || \
 	E=2 err $"script module depends of scp"
 
+script () {
+	local s="$1"; shift
+	local shabang="$( head -1 "${s}" )"
+
+    if [ "$shabang" != "${shabang#\#!}" ]; then
+        local shabang="${shabang#\#!}"
+    else
+        local shabang=/bin/sh
+    fi
+
+    cat "$s" | ssh "$1" "$shabang"
+}
 
 # The runner is callled from main dt script, and pass one argument (the
 # first one) which contains the remote hostname, and probably a list of
@@ -42,16 +54,7 @@ run ()
 		shift
 	done
 
-	local s="$1"; shift
-	local shabang="$( head -1 "${s}" )"
-
-    if [ "$shabang" != "${shabang#\#!}" ]; then
-        local shabang="${shabang#\#!}"
-    else
-        local shabang=/bin/sh
-    fi
-
-	cat "$s" | ssh "${u}@${h}" "$shabang"
+	script "$1" "${u}@${h}"
 }
 
 help "execute a local script in remote hosts" \
