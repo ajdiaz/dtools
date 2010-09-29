@@ -20,7 +20,8 @@
 # script and modules. We keep here check functions and error dispatchers.
 err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && eval ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
-lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
+lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null || \
+    source ~/.dtools/"$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
 
@@ -419,8 +420,9 @@ elif cap colors ; then
 fi
 
 # Load patterns available in library path.
-for lib in ${DTOOLS_LIB}/patterns/*.bash ; do
+for lib in ${DTOOLS_LIB}/patterns/*.bash ~/.dtools/patterns/*.bash ; do
 	[ "$lib" = "${DTOOLS_LIB}/patterns/*.bash" ] && continue
+	[ "$lib" = ~/.dtools/patterns/"*.bash" ] && continue
 	source "$lib" 2>/dev/null >/dev/null || \
 		E=1 err $"internal error on pattern definition ($lib)"
 done
