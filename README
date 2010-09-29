@@ -40,3 +40,8 @@ run
     okay::dt:ssh:myhostlinux3.domain:created users joe, eve, bob
 
 
+However not always is too easy. for example in some situations you need to
+copy files and performs any other actions. In this case you can create your
+own commands, just creating a bash file in $HOME/.dtools/commands directory,
+(or also $HOME/.dtools/patterns for patterns), for example in contrib/
+directory you can found a single deploy command.
