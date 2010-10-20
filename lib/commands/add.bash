@@ -23,11 +23,6 @@ run ()
 {
 	local h="$1"; shift
 
-	if [ "$(dtdb_findhost "$h")" ]; then
-		echo $"already known"
-		return 1
-	fi
-
 	dtdb_addhost "$h" >> ${DTOOLS_DB:-/dev/null}
 	local r=$?
 	[ $# -ne 0 ] && dtdb_addtag "$h" "$@" && return $?
