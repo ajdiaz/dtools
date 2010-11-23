@@ -316,9 +316,9 @@ dt_user ()
 	local h="${1#*@}"
 
 	if [ "$u" == "$h" ]; then
-		echo "${DTOOL_USER:-${LOGNAME:-$(whoami)}}"
+		echo "${DTOOLS_USER:-${LOGNAME:-$(whoami)}}"
 	else
-		echo "${DTOOL_USER:-$u}"
+		echo "${DTOOLS_USER:-$u}"
 	fi
 }
 
