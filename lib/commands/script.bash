@@ -19,9 +19,6 @@
 lib "commands/ssh.bash" || \
 	E=2 err $"script module depends of ssh"
 
-lib "commands/scp.bash" || \
-	E=2 err $"script module depends of scp"
-
 script () {
 	local s="$1"; shift
 	local shabang="$( head -1 "${s}" )"
@@ -40,25 +37,17 @@ script () {
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local h="$1" ; shift
-	local a=()
-	local u="$LOGNAME"
-	req ssh || E=3 err $"cannot found required binary ssh"
-	req scp || E=3 err $"cannot found required binary scp"
+	local u="$(dt_user "$1")"
+	local h="$(dt_host "$1")"
+	shift
 
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user) local u="$2" ; shift ;;
-			-*) a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
+	req ssh || E=3 err $"cannot found required binary ssh"
 
 	script "$1" "${u}@${h}"
 }
 
 help "execute a local script in remote hosts" \
-"usage: script [-user <user>] [ssh_opts] <script file>
+"usage: script [ssh_opts] <script file>
 
 This module run a local script in affected hosts via ssh.
 "

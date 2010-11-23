@@ -36,12 +36,15 @@ ssh ()
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local h="$1" ; shift
+	local h="$(dt_host "$1")"
+	local u="$(dt_user "$1")"
+	shift
+
 	req ssh || E=3 err $"cannot found required binary ssh"
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	ssh "$h" "$@"
+	ssh "${u}@${h}" "$@"
 }
 
 help "execute a command in remote hosts" \

@@ -21,7 +21,7 @@
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local h="$1"; shift
+	local h="${1}" ; shift
 
 	dtdb_addhost "$h" >> ${DTOOLS_DB:-/dev/null}
 	local r=$?

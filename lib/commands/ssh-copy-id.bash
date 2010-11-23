@@ -37,17 +37,9 @@ ssh-copy-id ()
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local a=()
-	local h="$1" ; shift
-
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user)  local u="$2" ; shift ;;
-			-*)  a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
+	local u="$(dt_user "$1")"
+	local h="$(dt_host "$1")"
+	shift
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
@@ -56,9 +48,9 @@ run ()
 
 
 help "distribute a public key in hosts" \
-"usage: ssh-copy-id [-user <user>] [arguments] <key_file>+
+"usage: ssh-copy-id [arguments] <key_file>+
 
 This module adds the public key file passed as argument into remote
 authorized_keys for hosts with match with pattern. This module is similar to
-the ssh-keysend functionality. You can set also a remote user to login.
+the ssh-keysend functionality.
 "

@@ -35,28 +35,18 @@ sudo ()
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local h="$1" ; shift
+	local u="$(dt_user "$1")"
+	local h="$(dt_host "$1")"
+	shift
 
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user)  local u="$2" ; shift ;;
-			-*)  a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
 	sudo "${u}@${h}" "$@"
 }
 
 help "execute a command in remote hosts with privilegies" \
-"usage: sudo [-user <user>] [sudo_opts] <command>
+"usage: sudo [sudo_opts] <command>
 
 This modules runs a command in remote hosts using sudo.
 Obviously the sudo binary must be exists in remote host. The
 sudo_opts are a list of options for sudo(1).
-
-NOTE: The -user is used to set the user who connect to remote
-host, but not is necessary the same as user for sudo, you can use
-the sudo(1) option -u to do this.
 "
 

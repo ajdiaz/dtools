@@ -43,26 +43,23 @@ scp ()
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local a=()
-	local h="$1" ; shift
+	local u="$(dt_user "$1")"
+	local h="$(dt_host "$1")"
+	shift
+
 	req scp || E=3 err $"cannot found required binary scp"
 
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user) local u="$2" ; shift ;;
-			-*) a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
-
 	[ $# -lt 2 ] && E=3 err $"missing arguments"
+	local s="$1"
+	local d="$2"
 
-	scp "$1" "${u}@${h}:${2}" "${a[@]}"
+	shift 2
+
+	scp "$s" "${u}@${h}:${d}" "$@"
 }
 
 help "classic scp copy to hosts" \
-"usage: scp [-user <user>] [scp_opts] <local_file> [remote_file]
+"usage: scp [scp_opts] <local_file> [remote_file]
 
 This module distribute a local file to a remote hosts which match with
 the pattern. You can use the -user option to set the remote user to use,

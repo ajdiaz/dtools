@@ -344,6 +344,32 @@ dtdb_findtag ()
 	cat "${DTOOLS_DB:-/dev/stdin}" | eval _dtdb_findtag $exp
 }
 
+# fun: dt_user <host_exp>
+# txt: get the username from the host expression passed as argument, or
+# 	   default user if not user available.
+# api: commands
+dt_user ()
+{
+	local u="${1%@*}"
+	local h="${1#*@}"
+
+	if [ "$u" == "$h" ]; then
+		echo "${DTOOL_USER:-${LOGNAME:-$(whoami)}}"
+	else
+		echo "$u"
+	fi
+}
+
+# fun: dt_host <host_expr>
+# txt: get the host part of a host expression or fails if no host provided.
+# api: commands
+dt_host ()
+{
+	local h="${1#*@}"
+
+	[ "$h" ] && echo "$h" || E=1 err $"no host found in expression '$1'"
+}
+
 # The main help text which displayed on usage information. From this text
 # probably we call to list-commands function to print available commands.
 help="""usage:
@@ -450,7 +476,7 @@ for h in "${HOSTLIST[@]}" ; do
 	else
 		pn="${h//-/_}"
 		pn="${pn//@/_}"
-		eval "coproc dt_${pn//./_} { USERNAME="$(dtdb_finduser "$h")" dt_run "${h}" "${@}" ; } >&3" 2>/dev/null
+		eval "coproc dt_${pn//./_} { dt_run "${h}" "${@}" >&3; }" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
 		pids[${#pids[@]}]="$(eval echo \${dt_${pn//./_}_PID})"
 		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()

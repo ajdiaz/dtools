@@ -24,26 +24,22 @@ lib "commands/scp.bash" || \
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local u="${LOGNAME}"
-	local a=()
-	local h="$1" ; shift
+	local u="$(dt_user "$1")"
+	local h="$(dt_host "$1")"
+	shift
+
 	req scp || E=3 err $"cannot found required binary scp"
 
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user) local u="$2" ; shift ;;
-			-*) a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
+	[ $# -lt 2 ] && E=3 err $"missing arguments"
+	local s="$1"
+	local d="$2"
+	shift 2
 
-	[ $# -lt 1 ] && E=3 err $"missing arguments"
-
-	scp "${u}@${h}:${1}" "$2" "${a[@]}"
+	scp "${u}@${h}:${s}" "$d" "${@}"
 }
 
 help "reverse scp from host to local machine" \
-"usage: rscp [-user <user>] [scp_opts] <remote_file> [local_file]
+"usage: rscp [scp_opts] <remote_file> [local_file]
 
 This module copy a file from a list of remote hosts to local host (it's the
 symetric command of scp, but reverse). The -user option can set the

@@ -22,7 +22,8 @@
 run ()
 {
 	local r
-	local h="$1" ; shift
+	local h="$(dt_host "$1")" ; shift
+
 	req ping || E=3 err $"cannot found required binary ping"
 
 	r="$(ping -q -c 1 "$@" "${h}" 2>&1)"
