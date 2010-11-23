@@ -27,19 +27,13 @@ lib "commands/scp.bash" || \
 # arguments for that command passed to dt on command line.
 run ()
 {
-	local h="$1" ; shift
-	local a=()
+	local h="$(dt_host "$1")"
+	local u="$(dt_user "$1")"
+	shift
+
 	local u="$LOGNAME"
 	req ssh || E=3 err $"cannot found required binary ssh"
 	req scp || E=3 err $"cannot found required binary scp"
-
-	while [[ "$1" == -* ]]; do
-		case "$1" in
-			-user) local u="$2" ; shift ;;
-			-*) a[${#a[@]}]="$1" ;;
-		esac
-		shift
-	done
 
 	release="$(date "+%Y-%m-%d")"
 
@@ -50,7 +44,7 @@ run ()
 }
 
 help "deploy an application to hosts" \
-"usage: deploy [-user <user>] [ssh_opts] dir
+"usage: deploy [ssh_opts] dir
 
 This module works only if you are in git repository, then deploy a copy
 of the repository to remote hosts in specified dir passed as argument.
