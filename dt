@@ -204,44 +204,6 @@ dtdb_findhost ()
     fi
 }
 
-# fun: dtdb_finduser <host regex>
-# txt: return the username associated with specified host, or the value of
-#      environmemt $LOGNAME if none found.
-# api: commands
-dtdb_finduser ()
-{
-    if [ ${#HOSTLIST[@]} -eq 0 ]; then
-        while read host tags ; do
-            [ "${host:0:1}" == "#" ] && continue
-            user="${host%%@*}"
-            host="${host#@}"
-
-            [ "$user" = "$host" ] && user="${LOGNAME:-$(who am i)}"
-
-            case "$(expr match "$host" "^$1[[:blank:]]*")" in
-                0) ;;
-                *) echo "$user"; return 0 ;;
-            esac
-        done < "${DTOOLS_DB:-/dev/null}"
-        echo "$user"
-    else
-        for line in "${HOSTLIST[@]}"; do
-            read host tags <<<"$line"
-            [ "${host:0:1}" == "#" ] && continue
-            user="${host%%@*}" 
-            host="${host#@}"
-
-            [ "$user" = "$host" ] && user="${LOGNAME:-$(who am i)}"
-
-            case "$(expr match "$host" "^$1[[:blank:]]*")" in
-                0) ;;
-                *) echo "$user"; return 0 ;;
-            esac
-        done
-        echo "$user"
-    fi
-}
-
 # fun: dtdb_addhost <host> [tags]+
 # txt: insert the specified host and tags to the dtools database.
 # api: commands
@@ -356,7 +318,7 @@ dt_user ()
 	if [ "$u" == "$h" ]; then
 		echo "${DTOOL_USER:-${LOGNAME:-$(whoami)}}"
 	else
-		echo "$u"
+		echo "${DTOOL_USER:-$u}"
 	fi
 }
 
