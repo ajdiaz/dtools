@@ -63,15 +63,20 @@ if [ ${okay} -gt 0 ] || [ ${fail} -gt 0 ] || [ ${unkn} -gt 0 ]; then
 	printf "\n\n"
 fi
 
-printf "%-20s%5s\n" "${H}Total:${N}" "${sums}"
-printf "%-20s%5s     [%4s]\n" "${H}Okay:${N}" "${okay}" "$((okay * 100 / sums))%"
-printf "%-20s%5s     [%4s]\n" "${H}Fail:${N}" "${fail}" "$((fail * 100 / sums))%"
-printf "%-20s%5s     [%4s]\n" "${H}Unknown:${N}" "${unkn}" "$((unkn * 100 / sums))%"
+if [ $sums -gt 0 ]; then
+	printf "%-20s%5s\n" "${H}Total:${N}" "${sums}"
+	printf "%-20s%5s     [%4s]\n" "${H}Okay:${N}" "${okay}" "$((okay * 100 / sums))%"
+	printf "%-20s%5s     [%4s]\n" "${H}Fail:${N}" "${fail}" "$((fail * 100 / sums))%"
+	printf "%-20s%5s     [%4s]\n" "${H}Unknown:${N}" "${unkn}" "$((unkn * 100 / sums))%"
 
-if [ ${fail} -gt 0 ]; then
-	printf "\n%-20s\n" "${H}Failed errors:${N}"
-	for m in "${messages[@]}"; do
-		echo "${m}"
-	done
+	if [ ${fail} -gt 0 ]; then
+		printf "\n%-20s\n" "${H}Failed errors:${N}"
+		for m in "${messages[@]}"; do
+			echo "${m}"
+		done
+	fi
+	echo
+else
+	printf "%-20s%5s\n" "${H}Total:${N}" "${sums}"
 fi
 
