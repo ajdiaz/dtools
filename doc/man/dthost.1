@@ -38,21 +38,19 @@ command | dthost
 .UNINDENT
 
 .SH DESCRIPTION
-dthost is an OMNI parses wich group result by fiveth field (the hostname).
+dthost is an OMNI parser, which groups the input by fiveth field (the hostname).
 This is similar to group_host theme in old versions of dtools. You can use
 this filter for dt, in the following way:
 
-
 .nf
-$ dt <pattern> <command> [args] | dthost
+$ dt -N <pattern> <command> [args] | dthost
 .fi
-This will be output the command executed by dt grouping by hostname.
 
 
 .SH SEE ALSO
 .INDENT 0.0
 .INDENT 3.5
-ssh(1), ssh\-keyscan(1),dt(1),dtstatus(1),dtcli(1)
+ssh(1), ssh\-keyscan(1),dt(1),dtstatus(1),dtcompact(1)
 
 .UNINDENT
 .UNINDENT

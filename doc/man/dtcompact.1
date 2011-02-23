@@ -1,7 +1,6 @@
-.\" Man page generated from reStructeredText.
-.TH dtstatus  "1" "2009-06-15" ""
+.TH dtcompact "1" "2011-02-23" ""
 .SH NAME
-dtstatus \- distributed tools
+dthost \- distributed tools
 
 .nr rst2man-indent-level 0
 .
@@ -33,25 +32,24 @@ level magin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .SH SYNOPSIS
 .INDENT 0.0
 .INDENT 3.5
-command | dtstatus
+command | dtcompact
 
 .UNINDENT
 .UNINDENT
 
 .SH DESCRIPTION
-dtstatus is an OMNI parse, which prints a the input grouped by
-first field (the status). This is similar to group_status
-theme in old versions of dtools. You can use this filter
-for dt, in the following way:
+dtcompact is an OMNI parse, which put the okay lines as contiguous dot line.
+If something fail, then a exclamation mark is drawing in the line and the
+message is printed at the end of the execution.
 
 .nf
-$ dt -N <pattern> <command> [args] | dtstatus
+$ dt -N <pattern> <command> [args] | dtcompact
 .fi
 
 .SH SEE ALSO
 .INDENT 0.0
 .INDENT 3.5
-ssh(1), ssh\-keyscan(1),dt(1),dthost(1),dtcompact(1)
+ssh(1), ssh\-keyscan(1),dt(1),dtstatus(1),dthost(1)
 
 .UNINDENT
 .UNINDENT
