@@ -24,7 +24,7 @@ tag string and operation is symbol to operate the tags, valid symbols are
 
 pattern_tag ()
 {
-	dtdb_findtag "$1" | cut -d' ' -f1
+	dtdb_findtag "$1"
 }
 
 pattern "tag" pattern_tag

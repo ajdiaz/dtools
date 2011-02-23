@@ -26,7 +26,7 @@ pattern_exp ()
 	while read host tags ; do
 		case "$(expr match "$host" "$1")" in
 			0) ;;
-			*) echo "$host" ;;
+			*) echo "$host $tags" ;;
 		esac
 	done < ${DTOOLS_DB:-/dev/null}
 }

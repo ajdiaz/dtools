@@ -24,7 +24,7 @@ pattern_out ()
 	while read host trash; do
 		[ "${host:1:1}" == "#" ] && continue
 		[ "${#host}" -eq 0 ] && continue
-		echo "$host"
+		echo "$host $trash"
 	done
 
 }
