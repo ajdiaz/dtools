@@ -40,8 +40,8 @@ DTOOLS_DB=~/.dtdb
 # Check that we have bash >= 4. We required new bash enhancement for
 # dtools >= 3. Prior code is bash < 4 compatible (AFAIK). Also check for
 # enhanced getopt.
-[ ${BASH_VERSINFO:-0} -ge 4 ] || E=1 err $"required bash version >= 4"
-req getopt || E=1 err $"enhanced getopt is required"
+[ ${BASH_VERSINFO:-0} -ge 4 ] || E=1 err "required bash version >= 4"
+req getopt || E=1 err "enhanced getopt is required"
 
 # Begin the API Definition. The dtools API is divided in three parts, the
 # **message** api (based in OMNI syntax), the **command** API which will
@@ -329,7 +329,7 @@ dt_host ()
 {
 	local h="${1#*@}"
 
-	[ "$h" ] && echo "$h" || E=1 err $"no host found in expression '$1'"
+	[ "$h" ] && echo "$h" || E=1 err "no host found in expression '$1'"
 }
 
 # The main help text which displayed on usage information. From this text
@@ -412,12 +412,12 @@ for lib in ${DTOOLS_LIB}/patterns/*.bash ~/.dtools/patterns/*.bash ; do
 	[ "$lib" = "${DTOOLS_LIB}/patterns/*.bash" ] && continue
 	[ "$lib" = ~/.dtools/patterns/"*.bash" ] && continue
 	source "$lib" 2>/dev/null >/dev/null || \
-		E=1 err $"internal error on pattern definition ($lib)"
+		E=1 err "internal error on pattern definition ($lib)"
 done
 
 # Read the pattern passed to dt(1)
 mapfile -t HOSTLIST < <(dt_pattern "$1") && shift || \
-    E=1 err $"unable to parse hostlist for pattern ${1:-null}."
+    E=1 err "unable to parse hostlist for pattern ${1:-null}."
 
 export HOSTLIST
 
