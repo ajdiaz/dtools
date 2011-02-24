@@ -1,8 +1,7 @@
 Since version 3.0 of dtools, you need bash4.
 
-Since version 2.0 of dtools, the dt.known_hosts file (AKA dt_lst) format has
-changes. Basically, the tags are now in a different column each one, instead
-on one only colum.
+Since version 2.0 of dtools, the dt.known_hosts file (AKA dt_lst) format,
+has been changed. Now, tags are white separated.
 
 This not affect to the normal use of the ssh client if you use ssh against
 the dt.known_hosts, but do not work with versions >= 2.0 of dt. So please
