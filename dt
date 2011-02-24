@@ -20,8 +20,8 @@
 # script and modules. We keep here check functions and error dispatchers.
 err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && eval ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
-lib () { source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null || \
-    source ~/.dtools/"$1" 2>/dev/null >/dev/null; }
+lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null    || \
+	     source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
 
@@ -432,8 +432,11 @@ export HOSTLIST
 
 # Read the command passed to dt(1)
 ${opt_p:-false} && command="list" || command="$1" ; shift
-lib "commands/${command}.bash" || \
+lib "commands/${command}.bash"   || \
+    source "${PWD}/${command}.dt" 2>/dev/null >/dev/null || \
     E=2 err "unknown command ${command:-null}, maybe you forget 'ssh' word?"
+
+fun run || E=1 err "the command \`${command}' has not run function."
 
 # Here begin the crazy loop and also a random function to create exotic
 # errors. :)
