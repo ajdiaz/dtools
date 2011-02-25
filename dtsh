@@ -1,0 +1,82 @@
+#! /bin/bash
+# Distributed Tools - dtools - dtsh
+# Copyright (C) 2008 Andrés J. Díaz <ajdiaz@connectical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+${DEBUG:+set -x}
+
+cap () { tput "$1" 2>/dev/null >/dev/null; }
+fun () { declare -F "$1" 2>/dev/null >/dev/null; }
+
+fail () { echo "${R}fail${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
+
+if cap colors; then
+	H=$'\e[0;1m'
+	N=$'\e[0;0m'
+	R=$'\e[31;1m'
+	G=$'\e[32;1m'
+	B=$'\e[34;1m'
+	Y=$'\e[33;1m'
+fi
+
+filter="dtcompact"
+dt_options=""
+dtx ()
+{
+	[ "$filter" != "none" ] && dt_options+=" -N"
+	./dt ${dt_options} "$@" | ./$filter
+}
+
+cmd_context ()
+{
+	eval "ctx_context=$2"
+}
+
+cmd_dtoptions ()
+{
+	eval "dt_options=$2"
+}
+
+cmd_filter ()
+{
+	case "$1" in
+		host)    filter="dthost" ;;
+		status)  filter="status" ;;
+		compact) filter="dtcompact" ;;
+		none)    filer="cat";;
+		*) fail "" "filter" "invalid filter ($1)"
+	esac
+}
+
+do_internal ()
+{
+	local cmd="$1"; shift
+	if fun "cmd_$cmd"; then
+		cmd_$cmd "$@"
+	else
+		dt=$(basename $0) fail "" "$cmd" "invalid internal command"
+	fi
+}
+
+ctx_context="$@"
+
+while read -e -p "${DTOOLS_PS1:-${B}[$ctx_context]${N} ${H}\$${N} }" command; do
+	case "${command}" in
+		.*|:*|@*) do_internal ${command:1} ;;
+		*) dtx $ctx_context $command ;;
+	esac
+done
+
