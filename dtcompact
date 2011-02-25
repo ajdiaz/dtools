@@ -90,10 +90,11 @@ while read -r status null dt command hostname message ; do
 done
 
 if [ ${okay} -gt 0 ] || [ ${fail} -gt 0 ] || [ ${unkn} -gt 0 ]; then
-	printf "\n\n"
+	echo
 fi
 
 if ! ${opt_S:-false}; then
+	echo
 	if [ $sums -gt 0 ]; then
 		printf "%-20s%5s\n" "${H}Total:${N}" "${sums}"
 		printf "%-20s%5s     [%4s]\n" "${H}Okay:${N}" "${okay}" "$((okay * 100 / sums))%"
