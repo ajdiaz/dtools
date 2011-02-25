@@ -37,17 +37,18 @@ dt_options=""
 dtx ()
 {
 	[ "$filter" != "none" ] && dt_options+=" -N"
-	./dt ${dt_options} "$@" | ./$filter
+	dt ${dt_options} "$@" | $filter
 }
 
 cmd_context ()
 {
-	eval "ctx_context=$2"
+	eval "ctx_context='$1'"
+	echo $ctx_context
 }
 
 cmd_dtoptions ()
 {
-	eval "dt_options=$2"
+	eval "dt_options='$1'"
 }
 
 cmd_filter ()
