@@ -16,13 +16,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+# Enablig debug if DEBUG environment variable is present. This will be more
+# verbose than you expect...
 ${DEBUG:+set -x}
 
+# Some usefull functions to everybody, declared here to be accesible for all
+# script and modules. We keep here check functions and error dispatchers.
 cap () { tput "$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 
+# fun: fail <command> <host> [message]
+# txt: return an ONMI fail message for command on host
+# api: message
 fail () { echo "${R}fail${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
 
+# Set colors if color capability is enabled for current terminal.
 if cap colors; then
 	H=$'\e[0;1m'
 	N=$'\e[0;0m'
@@ -32,25 +40,43 @@ if cap colors; then
 	Y=$'\e[33;1m'
 fi
 
+# Some global variables:
+# :filter: contains the program to filter dt output
+# :dt_options: contains a list of option to pass to dt script.
+# :context: the context (i.e. the pattern to use to resolve host list).
 filter="dtcompact"
 dt_options=""
+context="$@"
+
+# fun: dtx <args>
+# txt: execute the dt script with arguments and filter the output using the
+#      filter program declared in `filter' variable.
+# api: internal
 dtx ()
 {
 	[ "$filter" != "none" ] && dt_options+=" -N"
 	dt ${dt_options} "$@" | $filter
 }
 
+# fun: cmd_context <pattern>
+# txt: change the shell context (i.e. the pattern to use to resolve hosts).
+# api: shell
 cmd_context ()
 {
-	eval "ctx_context='$1'"
-	echo $ctx_context
+	eval "context='$1'"
 }
 
+# fun: cmd_dtoptions <options>
+# txt: add the options to dt when called to perform an action.
+# api: shell
 cmd_dtoptions ()
 {
 	eval "dt_options='$1'"
 }
 
+# fun: cmd_filter <filter>
+# txt: set the filter for dt output.
+# api: shell
 cmd_filter ()
 {
 	case "$1" in
@@ -62,6 +88,9 @@ cmd_filter ()
 	esac
 }
 
+# fun: do_internal <cmd> [args]
+# txt: execute a command using dt and the proper context.
+# api: internal
 do_internal ()
 {
 	local cmd="$1"; shift
@@ -72,10 +101,10 @@ do_internal ()
 	fi
 }
 
-ctx_context="$@"
-
+# Do the magic.
 while read -e -p "${DTOOLS_PS1:-${B}[$ctx_context]${N} ${H}\$${N} }" command; do
 	case "${command}" in
+		"") ;;
 		.*|:*|@*) do_internal ${command:1} ;;
 		*) dtx $ctx_context $command ;;
 	esac
