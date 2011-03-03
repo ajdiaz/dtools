@@ -1,77 +1,575 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset='utf-8'>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" dir="ltr">
+<head profile="http://gmpg.org/xfn/11">
+    <title>dtools - distributed shell tools</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="imagetoolbar" content="no" />
+	<link rel="stylesheet" href="/styles/default.css" type="text/css" />
+	<link rel="shortcut icon" href="favicon.ico" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js" type="text/javascript"></script>
+	<script src="scripts/jquery.smothscroll.js" type="text/javascript"></script>
 
-  <title>ajdiaz/dtools @ GitHub</title>
-
-  <style type="text/css">
-    body {
-      margin-top: 1.0em;
-      background-color: #6aa7bf;
-      font-family: "Helvetica,Arial,FreeSans";
-      color: #000000;
-    }
-    #container {
-      margin: 0 auto;
-      width: 700px;
-    }
-    h1 { font-size: 3.8em; color: #955840; margin-bottom: 3px; }
-    h1 .small { font-size: 0.4em; }
-    h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #955840; }
-    h3 { text-align: center; color: #955840; }
-    a { color: #955840; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
-    .download { float: right; }
-    pre { background: #000; color: #fff; padding: 15px;}
-    hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
-    .footer { text-align:center; padding-top:30px; font-style: italic; }
-  </style>
+	<script type="text/javascript">
+		$(function () {
+				$("a[href^=\#]").smoothScroll();
+			});
+		</script>
 </head>
-
 <body>
-  <a href="http://github.com/ajdiaz/dtools"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
+	<div id="fadeout"></div>
 
-    <div class="download">
-      <a href="http://github.com/ajdiaz/dtools/zipball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/ajdiaz/dtools/tarball/master">
-        <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-    </div>
+	<div id="flybar">
+		<a id="logo" href="#top"> </a>
+		<div class="navigation toc">
+			<div id="sm" class="button">Documentation</div>
+			<div class="contents menu">
+				<a href="#overview">Overview</a>
+				<a href="#installation">Installation and Usage</a>
+				<a href="#patterns">Patterns and database</a>
+				<a href="#tagop">Tag operations</a>
+				<a href="#commands">Commands and actions</a>
+				<a href="#dtsh">Dtools Shell</a>
+				<a href="#output">The output format</a>
+				<a href="#parsers">Output parsers</a>
+				<a href="#examples">Examples</a>
+				<a href="#development">Development</a>
+			</div>
+		</div>
+		<div class="navigation">
+			<div class="button">
+				<a href="#lpatterns">Patterns</a>
+			</div>
+		</div>
+		<div class="navigation">
+			<div class="button">
+				<a href="#lcommands">Commands</a>
+			</div>
+		</div>
+		<div class="navigation">
+			<div class="button">
+				<a href="#lparsers">Parsers</a>
+			</div>
+		</div>
 
-    <h1><a href="http://github.com/ajdiaz/dtools">dtools</a>
-      <span class="small">by <a href="http://github.com/ajdiaz">ajdiaz</a></span></h1>
 
-    <div class="description">
-      Distributed tools, aka dtools is a project written in bash coding to create a suite of programs to allow running different UNIX commands in parallel in a list of tagged hosts. This utility is based on capistrano for Ruby or fabric for Python, but in pure bash.
-    </div>
+	</div>
+	<div id="topall">
+	<div class="box">
+			<p><strong>¿Questions?</strong> Subscribe to the <a	href="http://groups.google.com/group/dtools-dev">mailing list</a></p>
+			<p><strong>¿Download?</strong> <a href="https://github.com/ajdiaz/dtools/tarball/latest">Latest	stable</a> or
+			<a href="https://github.com/ajdiaz/dtools/tarball/master">Unstable	branch</a></p>
+	</div>
 
-    <h2>Authors</h2>
-<p>Andres J. Diaz (ajdiaz@connectical.com)<br/><br/>      </p>
-<h2>Contact</h2>
-<p>Andrés J. Díaz (ajdiaz@connectical.com)<br/>      </p>
+	<div class="container">
+		<div id="main" class="active-slide">
+		<blockquote><strong>dtools</strong> is suite of utilities to perform some
+		system actions in a number of distributed systems. This works some
+		similar as other distributed shells do, like <a	href="pydsh.sourceforge.net/">pyDSH</a> or
+		<a href="http://www.netfort.gr.jp/~dancer/software/dsh.html.en">dancer shell</a>.</blockquote>
+
+		<blockquote><b>For impatients, jump to <a href="#examples">EXAMPLES</a></b></blockquote>
+
+		<h1 id="overview">Overview</h1>
+		<p>The <strong>dtools</strong> suite is designed to help to the
+		sysadmins to deploy applications or perform some actions in
+		a large-scale networks with a number of nodes. The basic dtools
+		usage is:</p>
+		<pre>dt pattern command arguments</pre>
+		<p>How dtools works? In brief, dtools resolves the
+		<em>affected hosts</em>, these are, the hosts where the action will
+		be performed. To find these hosts, dtools uses the <em><a href="#pattersn">patterns</a></em>,
+		and then execute the specified action in these hosts in paralel. The
+		actions are also called <em><a href="#commands">commands</a></em>, but they aren't system
+		commands, but dtools ones.</p>
+
+		<p>The <em>dtools</em> provides you a number of features, that other
+		tools do not. Here are a small list:</p>
+
+		<ul id="features"><li><strong>Modular</strong>, so it's easy to extend, just only need to create your
+			own pattern or command file.</li>
+			<li><strong>Thinking in sysadmin</strong>. No hard development skills required to
+			extend the software.</li>
+			<li><strong>Fast</strong>. Using coprocs to run a number of hosts in paralel.</li>
+			<li><strong>Easy to parse</strong>. The output format is a colon-separated list,
+			which is easy to parse for non-humans, but easy-to-read for humans too.</li>
+			<li><strong>Easy to deploy</strong>. Written in bash, just only need a modern
+			shell to run it.</li>
+			<li><strong>Tested</strong>. Used in production environment for years, with more
+			of 400 hosts.
+		</ul>
 
 
-    <h2>Download</h2>
-    <p>
-      You can download this project in either
-      <a href="http://github.com/ajdiaz/dtools/zipball/master">zip</a> or
-      <a href="http://github.com/ajdiaz/dtools/tarball/master">tar</a> formats.
-    </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
-      <pre>$ git clone git://github.com/ajdiaz/dtools</pre>
-    </p>
+		<h1 id="installation">Installation and Usage</h1>
+		<p>The currently versions of <em>dtools</em> do not provide an
+		automatic installer too. Neverthless you can install dtools
+		following these easy steps:</p>
 
-    <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/ajdiaz/dtools">ajdiaz/dtools</a>
-    </div>
+		<ol>
+			<li><strong>Download</strong> the dtools code, from the
+			<a href="http://github.com/ajdiaz/dtools">github repository</a>,
+			or from a <a href="#releases">release</a>.</li>
+			<li><strong>Copy files</strong> as root, you need to put the
+			<tt>lib</tt> directory into <tt>/usr/lib/dtools</tt>, and the dt
+			utils into any directory in <tt>PATH</tt>. You can use the
+			following orders:<pre># cp dt dthost dtstatus /usr/bin
+# cp -r lib /usr/lib/dtools
+# cp -r doc/man/\*.1 /usr/share/man/man1</pre></li>
+			</ol>
 
-  </div>
+		<h2>Usage</h2>
+		<p>The main dtools command is <tt>dt</tt>, the dt command performs
+		actions in remote hosts, and return an output in colon-separated
+		form, called OMNI format.</p>
+		<p>The basic usage is:</p>
 
-  
+		<pre>dt [options] &lt;pattern&gt; &lt;command&gt;</pre>
+
+		<dl>
+			<dt id="options">Options</dt>
+			<dd>The options can modify the normal behaviour of <tt>dt</tt>,
+			including the dtools database location, the number of paralell executions
+			and more.
+
+			<table>
+			<tr><td><code>-h X, --help X</code></td><td>Display help about X command or a short help screen.</td></tr>
+			<tr><td><code>-D X, --db X</code></td><td>Use X as dtools database.</td></tr>
+			<tr><td><code>-p, --pretend</code></td><td>Pretend command, but do nothing.</td></tr>
+			<tr><td><code>-C X, --coproc X</code></td><td>Use a number of X coprocessors to perform the action.</td></tr>
+			<tr><td><code>-T X, --timeout X</code></td><td>Set the connection timeout to X seconds for each host.</td></tr>
+			<tr><td><code>-i, --interactive</code></td><td>Not use coprocessors and be interactive.</td></tr>
+			<tr><td><code>-N, --no-color</code></td><td>Supress the color output.</td></tr>
+			</table>
+			</dd>
+
+			<dt>Patterns</dt>
+			<dd>The <a href="#patterns">patterns</a> are a way to get the targets. The targets are the nodes
+			in database where a command will be executed. Usually the pattern get a
+			subset of nodes in database.</dd>
+
+			<dt>Commands</dt>
+			<dd>The <a href="#commands">commands</a> are the actions which will be executed in the remote nodes
+			affected by the pattern matching. Note that the could be not just a shell
+			command, but a dtools command, for example the <em>ssh</em> command runs
+			using ssh protocol a number of commands which will be passed in <em>args</em>.</dd>
+		</dl>
+
+		<h1 id="patterns">Patterns and database</h1>
+		<p>As explained, the patterns are filters intended to get the list
+		of targeted hosts. Usually patterns works over a local database,
+		called the <em>dtdb</em>. This database is a plain text file in
+		the user's home directory named <tt>.dtdb</tt>, with a number of
+		hosts (one per line), and a white-separated list of tags per
+		host.</p>
+		<p>Here are an example of dtdb file:</p>
+		<pre>hostname tag1 tag2 tagn
+hostname2 tag3 tag4 tagm</pre>
+
+		<p>The following example filter the dtdb by defautl (i.e. the
+		<tt>~/.dtdb</tt> file) using the pattern <em>tag</em> with
+		the argument <em>list</em>, and them, do the action <em>list</em>
+		over the affected hosts.</p>
+		<pre>dt tag:test list</pre>
+
+		<p>Patters are, in formal words, transformations over a (dtdb
+		formated) list of hosts. As any other transformation, you can
+		operate with them. For example, you can concatename two or more
+		patterns, for example, you can filter the results of a previous
+		pattern:</p>
+		<pre>dt tag:test:tag:sample list</pre>
+		<p>Or agregate the results of two independent patterns:</p>
+		<pre>dt tag:test+tag:sample list</pre>
+
+		<p>Probably you want to known which patterns dtools support. You can
+		see the full list in <a href="#lpatterns">pattern list</a>.</p>
+
+	<h1 id="tagop">Tag operations</h1>
+	<p>When using the tag pattern, you want to perform some operations with
+	tags, for example an union operation. The tag solve algorithm
+	support the following operations:</p>
+
+	<ul><li><strong>INTERSECTION</strong>: <tt>tag:one+two</tt></li>
+		<li><strong>UNION</strong>: <tt>tag:one,two</tt></li>
+		<li><strong>DIFFERENE</strong>: <tt>tag:one-two</tt></li>
+	</ul>
+
+	<p>If you concatenate more than two operations, this will be evaluated
+	from left to right. You cannot change the evaluation priority, but, if
+	needed, you can play with pattern concatenations to emulate this
+	behaviour. Usualy it's not needeed.</p>
+
+
+	<h1 id="commands">Commands and actions</h1>
+	<p>The commands are the actions than dtools can performs. We always talk
+	about dtools commands, don't confuse with OS commands. The <em>cat</em>
+	is a well-known OS command, but it's not a dtools command. Usually both,
+	dtools and OS commans are the same, just for readability.</p>
+
+	<p>So, the <em>ssh</em> command, for example, connect to the affected
+	host list using the SSH protocol, as the ssh OS command usually
+	does.</p>
+
+	<p>Also, if a command accept arguments in the form <tt>-X</tt>, you need
+	to escape these arguments, to avoid dt to interpret that options as
+	his own. You can use single quotation over the arguments to do it, or
+	just simple put a <tt>--</tt> (double dash), at the end of dt options.
+	For example:</p>
+
+	<pre>dt -N -- tag:test ssh ls -lR /</pre>
+
+
+	<p>Probably you want to known which commands dtools support. You can
+	see the full list in <a href="#lcommands">command list</a>.</p>
+
+	<h1 id="dtsh">The dtools shell</h1>
+	<p>Since version 4.1, the <tt>dhsh</tt> script was introduced in dtools.
+	The dtools sheel or dtshell is an interactive shell which execute
+	actions in a context. A context is a host list resolved by a pattern
+	expression of any kind.<p>
+	<p>To start the shell just only type:</p>
+	<pre>dtsh exp:.*</pre>
+	<p>Of course you can use any pattern than you wish. Any command that you
+	type in the interactive shell will be executed in any host matched by
+	pattern expression, and return the result filtered by any <a href="#parsers">parser</a>.</p>
+	<p>The dtshell also has internal commands, which starts with a dot ".",
+	internal commands allow you to change the context, the output filter and
+	other minor changes. Please type <tt>.help</tt> for get more help about
+	these commands.</p>
+	<p>The dtshell is highly experimental and his use is not recommended in
+	large environments yet.</p>
+
+	<h1 id="output">The output format</h1>
+	<p>The <tt>dt</tt> command provide an output which is easy to parse and
+	easy to read for humans, this is easy to read for everyone, so we call
+	this format OMNI, from <em>omniscient</em>.</p>
+	<p>The OMNI format is a colon-separated format, with the following
+	fields:</p>
+
+	<pre>status::dt:command:host:message</pre>
+
+	<dl>
+		<dt id="status">Status</dt>
+		<dd>The status can be <em>okay</em> or <em>fail</em>, and as obvious.</dd>
+
+		<dt>Command</dt>
+		<dd>The command which dtools is working on.</dd>
+
+		<dt>Host</dt>
+		<dd>The host where dtools is working on.</dd>
+
+		<dt>Message</dt>
+		<dd>Any output or error message that the command will need to display. This
+		message cannot contains newlines, so this character is escaped.</dd>
+	</dl>
+
+	<h1 id="parsers">Output parsers</h1>
+	<p>In some situations the default output format of dtools is not very
+	clear. For example if a command results in a multi-line output, you want
+	to see the output as remote hosts does, instead of escaped message. So,
+	you can parse de dt output with any parser.</p>
+
+	<p>To parse an output with any parser, you can use the followign
+	recipe:</p>
+
+	<pre>dt -N pattern command | parser</pre>
+
+	<p>Please note about the <em>-N</em> option. This option disable color
+	output. Color output is usefull for humans, but has not sense for
+	parsers.</p>
+
+	<div id="examples">
+	<h1>Examples</h1>
+
+	<p>Let's suppose that you have a dtdb file with the following contents,
+	you can copy&amp;paste it for examples:</p>
+
+	<pre>host1.testdomain.com odd test all
+host2.testdomain.com even test all
+host3.otherdomain.com odd other all
+host4.otherdomain.com even other all</pre>
+
+	<p><span class="bigray">1</span>List all hosts in the file using a regular expression pattern:</p>
+	<pre>dt exp:.* list</pre>
+
+	<p><span class="bigray">2</span>List all hosts in hte file using the tag <em>all</em>:</p>
+	<pre>dt tat:all list</pre>
+
+	<p><span class="bigray">3</span>List all even hosts in the file, using tags:</p>
+	<pre>dt tag:even list</pre>
+
+	<p><span class="bigray">4</span>List all even hosts for which hostname contains the string "oth":</p>
+	<pre>dt tag:even:exp:.*oth.* list</pre>
+
+	<p><span class="bigray">5</span>List even and odd hosts in file:</p>
+	<pre>dt tag:even+tag:odd list</pre>
+
+	<p><span class="bigray">6</span>List all even hosts in an external file with the same format:</p>
+	<pre>cat file | dt out::tag:even list</pre>
+
+	<p><span class="bigray">7</span>Get the date of all hosts tagged with "test":</p>
+	<pre>dt tag:test ssh date</pre>
+
+	<p><span class="bigray">8</span>List the <tt>/etc/passwd</tt> file for all hosts tagged with "odd"
+	(please note that the <tt>/etc/passwd</tt> is multiline, so a parser is
+	used here):</p>
+	<pre>dt tag:odd ssh cat /etc/passwd | dthost</pre>
+
+	<p><span class="bigray">9</span>Execute the chain of commands <tt>touch /tmp/sample &amp;&amp; rm -f /tmp/sample</tt> in remote hosts tagged with "odd" (<strong>note the
+	double quote</strong>):</p>
+	<pre>dt tag:odd ssh "'touch /tmp/sample &amp;&amp; rm -f /tmp/sample'"</pre>
+
+	<p><span class="bigray">10</span>Execute the command <tt>cat /etc/passwd</tt> and redirect the
+	<tt>stdout</tt> to the file <tt>/tmp/passwords</tt> in the remote
+	hosts tagged with "odd" (<strong>note the double quote</strong>):</p>
+	<pre>dt tag:odd ssh "'cat /etc/passwd &gt; /tmp/passwords'"</pre>
+
+	<div id="development">
+		<h1>Development</h1>
+		<p>The main dtools repository is on github, at <a
+			href="http://github.com/ajdiaz/dtools">http://github.com/ajdiaz/dtools</a>. You can clone the repo
+		to work locally, as usual way:</p>
+		<pre>git clone git://github.com/ajdiaz/dtools</pre>
+		<p>Any patch or suggestion are welcome, you can use a <a href="http://help.github.com/pull-requests/">github's pull request</a>
+		to push your changes, or send us a mail via <tt>git send-email</tt>
+		command. If you are not familiar with git, you can read
+		<a href="http://felipec.wordpress.com/2009/10/25/git-send-email-tricks/">this post</a>, taken of the Felipe Contreras blog.</p>
+		<p>The dtools development is discussed on <a href="http://groups.google.com/group/dtools-dev">dtools-dev</a> mailing list.</p>
+
+		<h2>How to create a new pattern?</h2>
+		<p>Patterns are modules into dtools architecture, and they are
+		stored in the library directory, into <tt>patterns</tt> subdir. Also
+		patterns can be stored in the user home directory, under
+		<tt>~/.dtools/patterns</tt> dir.</p>
+		<p>A pattern is a file with extension <tt>.bash</tt>, and must
+		contain a pattern function, and a pattern declaration.</p>
+		<p>The pattern declaration links a pattern name with a callback
+		function, as following:</p>
+		<pre>pattern name callback</pre>
+		<p>Where "pattern" is a keyword, "name" is the name of the pattern
+		(as how the pattern must be called from the comman line), and the
+		"callback" a function to be called when patter is required.</p>
+		<p>The following pattern just example return the entirely database:</p>
+		<pre>pattern_all ()
+{
+	cat ${DTOOLS_DB}
+}
+
+pattern "all" pattern_all
+</pre>
+		<p>As you can see, the pattern called <em>all</em> is linked with the
+		callback function defined above, named "pattern_all".</p>
+		<p id="helpapi">Aditionally, you can set a help message for the
+		pattern, use the <em>help</em> keyword. This keyword allows two
+		arguments, a short help message (which appears when <tt>dt -h</tt>),
+		and a long message which explain more detailed the pattern usage.
+		For example:</p>
+
+		<pre>help "returns all nodes in database" \
+     "just return all lines in database file"</pre>
+
+		<h2>How to create a command?</h2>
+		<p>Commands are dtools modules too. The commands are bash files with
+		<tt>.bash</tt> extension saved in library directory, under
+		<em>commands</em> subdir, or in user home directory, under
+		<tt>~/.dtools/commands</tt> dir.</p>
+
+		<p>Create new command are easy, just only need to add a function
+		called <tt>run()</tt> in the module file. This function will take
+		almost one argument, the first one, which is the affected host where
+		perform the action, and a variable list of optional arguments which
+		will be the arguments passed from the command line. So, for example
+		running an example command called "test", with the following command
+		line:</p>
+		<pre>dt pattern test foo bar</pre>
+		<p>Will result in a invocation on the <tt>run()</tt> method (one
+		invocation per affected host) on <tt>test.bash</tt> module which
+		will receive three arguments, the first one will be the affected node,
+		and the other will be "foo" and "bar".</p>
+
+		<p>You can also create your commands and save them with <tt>.dt</tt>
+		extension. The <tt>dt</tt> script will look for a command in the
+		global libraryd directory, in local user directory and finally,
+		search a filed called as a command, but with <tt>.dt</tt> extension
+		in current working directory.</p>
+
+		<p>For example we create a command which just echo the arguments
+		that receives:</p>
+
+		<pre>cat &gt; echo.dt &lt;&lt; EOF
+run () {
+   echo "$@"
+}
+EOF</pre>
+		<p>Then you can run the following:</p>
+		<pre>dt exp:.* echo arg1 arg2</pre>
+		</div>
+
+	</div>
+
+	<div id="lpatterns">
+		<h1>List of patterns</h1>
+
+		<div class="boxy">
+			<div class="cmd">exp:<em>regex</em></div>
+			<div class="desc">Filter hosts using the regular expression
+				passed in argument. Example:
+				<pre>dt exp:.*domain.* list</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">nil::</div>
+			<div class="desc">Return an emtpy list of hosts, just only for
+				debug purposes.
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">out::</div>
+			<div class="desc">Return the list of hosts catched from the
+				<tt>stdin</tt>, it's usefull to pipe a command with
+				<tt>dt</tt>.
+				<pre>cat ~/.dtdb | dt out:: list</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">sys:<em>hostname[,hostname]</em></div>
+			<div class="desc">Return the hosts passed as arguments.
+				It's usefull to perfom an action on a single host.
+				<pre>dt sys:test.example.com list</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">tag:<em>tagop</em></div>
+			<div class="desc">Return the hosts which match with an specific
+				<a href="#tagop">tag operation</a>.
+				<pre>dt tag:test,sample+net list</pre>
+			</div>
+		</div>
+
+	<div style="clear:both;"></div>
+	</div>
+
+	<div id="lcommands">
+		<h1>List of commands</h1>
+
+		<div class="boxy">
+			<div class="cmd">add <em>tags</em></div>
+			<div class="desc">Add a host to the local dtdb tagged with
+				specific tags (white-separated list).
+				<pre>dt sys:test.example.com add sample</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">ipmitool <em>cmd</em></div>
+			<div class="desc">Perform some IPMI actions using OpenIPMI-utils
+				to the affected hosts.
+				<pre>dt tag:test ipmitool power off</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">list</div>
+			<div class="desc">Show the hosts affected by the previous patterns
+				<pre>dt tag:test list</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">ping</div>
+			<div class="desc">Check if hosts are alive and the latency time
+				using the classic ICMP ping.
+				<pre>dt sys:test.example.com ping</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">rscp <em>remote</em> <em>local</em></div>
+			<div class="desc">Reverse secure copy from the file in remote
+				path to local path.
+				<pre>dt tag:test rscp /etc/passwd /tmp</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">scp <em>local</em> <em>remote</em></div>
+			<div class="desc">Secure copy from the file in local path to remote path.
+				<pre>dt tag:test scp /etc/passwd /tmp</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">script <em>scriptfile</em></div>
+			<div class="desc">Execute a script file in remote hosts. The file is interpreted in destination.
+				<pre>dt tag:test script ./rotatelogs.sh</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">ssh-copy-id <em>pubkey</em></div>
+			<div class="desc">Copy the public key passed as argument to the affected hosts for secure&amp;fast login.
+				<pre>dt exp:.* ssh-copy-id ~/.ssh/id_dsa.pub</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">ssh <em>command</em></div>
+			<div class="desc">Execute a command in the remote hosts. Use
+				double quotation ("'foo'") for remote eval.
+				<pre>dt tag:test ssh "'date &gt;/dev/null'"</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">sudo <em>command</em></div>
+			<div class="desc">Try to perform the command in the remote host using sudo.
+				<pre>dt tag:admin sudo halt</pre>
+			</div>
+		</div>
+		<div class="boxy">
+			<div class="cmd">tag <em>[+tag|-tag]</em></div>
+			<div class="desc">Add or remove a tag to the affected list.
+				<pre>dt tag:admin tag -- -admin</pre>
+			</div>
+		</div>
+	<div style="clear:both;"></div>
+	</div>
+
+	<div id="lparsers">
+		<h1>List of parsers</h1>
+
+		<div class="boxy">
+			<div class="cmd">dthost</div>
+			<div class="desc">Group results by host
+				<pre>dt -N exp:.* list | dthost</pre>
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">dtstatus</div>
+			<div class="desc">Group results by status
+				<pre>dt -N exp:.* list | dtstatus
+			</div>
+		</div>
+
+		<div class="boxy">
+			<div class="cmd">dtcompact</div>
+			<div class="desc">Show compact output, a green dot is displayed
+			when okay, and a admiration mark when fails.
+			<pre>dt exp:.* list | dtcompact</pre>
+			</div>
+		</div>
+
+	<div style="clear:both;"></div>
+	</div>
+
+
+
+<div id="footer">
+	<p>This design is based on <a href="http://jashkenas.github.com/coffee-script/">coffe-script web site</a>.</p>
+</div>
+
+</div></div>
+
+
+</div>
+
 </body>
 </html>
