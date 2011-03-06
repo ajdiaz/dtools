@@ -24,6 +24,7 @@ lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null    || \
 	     source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
+use () { lib "${1//.//}" || source ${1}.dt 2>&1 >/dev/null; }
 
 # Enablig debug if DEBUG environment variable is present. This will be more
 # verbose than you expect...
