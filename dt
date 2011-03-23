@@ -36,6 +36,7 @@ DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 # Set the default database file for dtools. TODO the database as loaders, in
 # the future other database backend must be supported too.
 DTOOLS_DB=~/.dtdb
+DEFAULT_DTOOLS_DB=$DTOOLS_DB
 
 # Check that we have bash >= 4. We required new bash enhancement for
 # dtools >= 3. Prior code is bash < 4 compatible (AFAIK). Also check for
@@ -126,7 +127,7 @@ list-patterns ()
 }
 
 # fun: dt_pattern <patternlist>
-# txt: return the list of hosts and tags with match with pattern list.
+# txt: return the list of hosts and tags whitch match with pattern list.
 # api: helper
 dt_pattern ()
 {
@@ -134,18 +135,18 @@ dt_pattern ()
 
 	if [ "${pattern[${pattern_key:=nil}]}" ] ; then
 		if [ "${other}" ] ; then
-			${pattern[$pattern_key]} "$pattern_val" | \
+			${pattern[$pattern_key]} "$pattern_val" "${other}" | \
 				DTOOLS_DB=/dev/stdin dt_pattern "$other"
 		else
 			${pattern[$pattern_key]} "$pattern_val"
 		fi
 	else
-		pattern_sys "$pattern_key"
+		dt_pattern "sys" "${pattern_val}"
 	fi
 }
 
 # fun: dt_pattern_filter <patternlist>
-# txt: return the list of hosts with match with pattern list.
+# txt: return the list of hosts which match with pattern list.
 # api: helper
 dt_pattern_filter ()
 {
@@ -377,7 +378,7 @@ while [[ "$1" = -* ]]; do
     	-p|--pretend) opt_p=true  ;;
     	-N|--no-color) opt_N=true ;;
     	-i|--interactive) interactive=true && opt_C=0 ;;
-    	-D|--db) DTOOLS_DB="$2"   ; shift ;;
+    	-D|--db) DTOOLS_DB="$2"; DEFAULT_DTOOLS_DB="$DTOOLS_DB"  ; shift ;;
     	-C|--coproc)  opt_C="$2"  ; shift ;;
     	-T|--timeout) opt_T="$2"  ; shift ;;
         --) shift ; break ;;
