@@ -183,20 +183,21 @@ hostname2 tag3 tag4 tagm</pre>
 		<p>Probably you want to known which patterns dtools support. You can
 		see the full list in <a href="#lpatterns">pattern list</a>.</p>
 
-	<h1 id="tagop">Tag operations</h1>
-	<p>When using the tag pattern, you want to perform some operations with
-	tags, for example an union operation. The tag solve algorithm
-	support the following operations:</p>
+        <h2 id="tagop">Pattern operations</h2>
+        <p>You can combine patterns to get some operations which are not
+        possible with a single pattern. For example to get all host not
+        tagged with <tt>example</tt> tag.</p>
 
-	<ul><li><strong>INTERSECTION</strong>: <tt>tag:one+two</tt></li>
-		<li><strong>UNION</strong>: <tt>tag:one,two</tt></li>
-		<li><strong>DIFFERENE</strong>: <tt>tag:one-two</tt></li>
-	</ul>
+        <p>You can use any of these operations:</p>
+
+    	<ul><li><strong>INTERSECTION</strong>: <tt>pattern:one:pattern:two</tt></li>
+	    	<li><strong>UNION</strong>: <tt>pattern:one+pattern:two</tt></li>
+		    <li><strong>NEGATION</strong>: <tt>tag:one:not::</tt></li>
+    	</ul>
 
 	<p>If you concatenate more than two operations, this will be evaluated
-	from left to right. You cannot change the evaluation priority, but, if
-	needed, you can play with pattern concatenations to emulate this
-	behaviour. Usualy it's not needeed.</p>
+    from left to right (please note that the <tt>not</tt> pattern will
+    negate the precedente pattern.</p>
 
 
 	<h1 id="commands">Commands and actions</h1>
@@ -301,24 +302,27 @@ host4.otherdomain.com even other all</pre>
 	<pre>dt tag:even:exp:.*oth.* list</pre>
 
 	<p><span class="bigray">5</span>List even and odd hosts in file:</p>
-	<pre>dt tag:even+tag:odd list</pre>
+    <pre>dt tag:even:tag:odd list</pre>
 
-	<p><span class="bigray">6</span>List all even hosts in an external file with the same format:</p>
+    <p><span class="bigray">6</span>List hosts no tagged as examples:</p>
+    <pre>dt tag:example:not:: list</pre>
+
+	<p><span class="bigray">7</span>List all even hosts in an external file with the same format:</p>
 	<pre>cat file | dt out::tag:even list</pre>
 
-	<p><span class="bigray">7</span>Get the date of all hosts tagged with "test":</p>
+	<p><span class="bigray">8</span>Get the date of all hosts tagged with "test":</p>
 	<pre>dt tag:test ssh date</pre>
 
-	<p><span class="bigray">8</span>List the <tt>/etc/passwd</tt> file for all hosts tagged with "odd"
+	<p><span class="bigray">9</span>List the <tt>/etc/passwd</tt> file for all hosts tagged with "odd"
 	(please note that the <tt>/etc/passwd</tt> is multiline, so a parser is
 	used here):</p>
 	<pre>dt tag:odd ssh cat /etc/passwd | dthost</pre>
 
-	<p><span class="bigray">9</span>Execute the chain of commands <tt>touch /tmp/sample &amp;&amp; rm -f /tmp/sample</tt> in remote hosts tagged with "odd" (<strong>note the
+	<p><span class="bigray">10</span>Execute the chain of commands <tt>touch /tmp/sample &amp;&amp; rm -f /tmp/sample</tt> in remote hosts tagged with "odd" (<strong>note the
 	double quote</strong>):</p>
 	<pre>dt tag:odd ssh "'touch /tmp/sample &amp;&amp; rm -f /tmp/sample'"</pre>
 
-	<p><span class="bigray">10</span>Execute the command <tt>cat /etc/passwd</tt> and redirect the
+	<p><span class="bigray">11</span>Execute the command <tt>cat /etc/passwd</tt> and redirect the
 	<tt>stdout</tt> to the file <tt>/tmp/passwords</tt> in the remote
 	hosts tagged with "odd" (<strong>note the double quote</strong>):</p>
 	<pre>dt tag:odd ssh "'cat /etc/passwd &gt; /tmp/passwords'"</pre>
@@ -444,6 +448,14 @@ EOF</pre>
 			<div class="desc">Return the hosts which match with an specific
 				<a href="#tagop">tag operation</a>.
 				<pre>dt tag:test,sample+net list</pre>
+			</div>
+        </div>
+	    <div class="boxy">
+			<div class="cmd">not:<em>[initialset]</em></div>
+			<div class="desc">Return the complementary set received in stdin
+                using initialset to found alternatives.
+				<a href="#tagop">tag operation</a>.
+				<pre>dt tag:test:not:: list</pre>
 			</div>
 		</div>
 
