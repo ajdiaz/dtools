@@ -19,7 +19,7 @@
 ssh ()
 {
 	local h="$1"; shift
-	SSHOPTS="-oStrictHostKeyChecking=no"
+	SSHOPTS="-tt -oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
 		command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
 			-oBatchMode=yes "$h" ":" >&2 2>/dev/null
