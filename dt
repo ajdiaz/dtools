@@ -132,7 +132,8 @@ list-patterns ()
 # api: helper
 dt_pattern ()
 {
-	IFS=: read pattern_key pattern_val other <<< "$1"
+	IFS=:
+	read pattern_key pattern_val other <<< "$1"
 
 	if [ "${pattern[${pattern_key:=nil}]}" ] ; then
 		if [ "${other}" ] ; then
