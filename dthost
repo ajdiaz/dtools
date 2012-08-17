@@ -18,7 +18,6 @@
 
 ${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
-LC_ALL=C; LANG=C; export LANG LC_ALL
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
@@ -36,14 +35,18 @@ if cap colors && ${opt_N:-true}; then
 	G=$'\e[32;1m'
 fi
 
-oldIFS=$IFS
+# fun: dt_inplace <str>
+# txt: remove escapes from dt_replace
+dt_inplace ()
+{
+	local r="${1//\\n/$'\n\t'}"
+	local r="${r//\\r/}"
+	echo "$r"
+}
+
 export IFS=':'
 while read -r status null dt command hostname message ; do
 	echo -e "${G}$status${N}:$null:$dt:$command:${H}$hostname${N}:"
-	echo $'\t'${message//\\n/$'\n\t'}$'\n'
+	echo $'\t'"$(dt_inplace "${message}")"$'\n'
 done
-
-
-
-
 

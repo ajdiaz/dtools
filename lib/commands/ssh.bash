@@ -26,7 +26,7 @@ ssh ()
 		#[ $? -eq 0 ] || input "ssh" "$h" "hidden" >/dev/tty
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
 	else
-		SSHOPTS="$SSHOPTS -oBatchMode=yes"
+		SSHOPTS="$SSHOPTS -q -oBatchMode=yes"
 	fi
     eval command ssh $SSHOPTS "$h" \'"$@"\'
 }

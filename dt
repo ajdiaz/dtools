@@ -157,6 +157,17 @@ dt_pattern_filter ()
 	done | sort | uniq
 }
 
+# fun: dt_replace <string>
+# txt: escape special characters to be printable in one line omni output
+# api: helper
+dt_replace ()
+{
+	local r="${1//$'\n'/\\n}"
+	local r="${r//$'\r'/\\r}"
+
+	echo "$r"
+}
+
 # fun: dt_run <host> [arguments]
 # txt: run loaded command for host passing arguments if present.
 # api: helper
@@ -165,8 +176,8 @@ dt_run ()
   local h="$1" ; shift
 
   ret="$(run "${h}" "$@" 2>&1)" &&
-  	okay "$command" "${h}" "${ret//$'\n'/\\n}" ||
-  	fail "$command" "${h}" "${ret//$'\n'/\\n}"
+  	  okay "$command" "${h}" "$(dt_replace "$ret")" ||
+	  fail "$command" "${h}" "$(dt_replace "$ret")"
 }
 
 # fun: dt_bye

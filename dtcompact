@@ -18,7 +18,6 @@
 
 ${DEBUG:+set -x}
 DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
-LC_ALL=C; LANG=C; export LANG LC_ALL
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
@@ -75,12 +74,11 @@ let sums=0
 
 messages=()
 
-oldIFS=$IFS
 export IFS=':'
 while read -r status null dt command hostname message ; do
 	case "$status" in
-		okay) echo -n "${G}.${N}"; ((okay++));;
-		fail)
+		*okay*) echo -n "${G}.${N}"; ((okay++));;
+		*fail*)
 			echo -n "${R}!${N}";
 			messages[${#messages[@]}]="$(fail "$command" "$hostname" "$message")";
 			((fail++));;
