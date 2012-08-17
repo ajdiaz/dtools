@@ -19,14 +19,14 @@
 ssh ()
 {
 	local h="$1"; shift
-	SSHOPTS="-tt -oStrictHostKeyChecking=no"
+	SSHOPTS="-oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
 		command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
 			-oBatchMode=yes "$h" ":" >&2 2>/dev/null
 		#[ $? -eq 0 ] || input "ssh" "$h" "hidden" >/dev/tty
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
 	else
-		SSHOPTS="$SSHOPTS -q -oBatchMode=yes"
+		SSHOPTS="$SSHOPTS -oLogLevel=ERROR -oBatchMode=yes"
 	fi
     eval command ssh $SSHOPTS "$h" \'"$@"\'
 }

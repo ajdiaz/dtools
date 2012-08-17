@@ -164,6 +164,8 @@ dt_replace ()
 {
 	local r="${1//$'\n'/\\n}"
 	local r="${r//$'\r'/\\r}"
+	local r="${r%\\n}"
+	local r="${r%\\r}"
 
 	echo "$r"
 }
