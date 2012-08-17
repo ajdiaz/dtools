@@ -19,7 +19,7 @@
 ssh ()
 {
 	local h="$1"; shift
-	SSHOPTS="-oStrictHostKeyChecking=no"
+	SSHOPTS="$SSHOPTS -oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
 		command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
 			-oBatchMode=yes "$h" ":" >&2 2>/dev/null
@@ -38,13 +38,14 @@ run ()
 {
 	local h="$(dt_host "$1")"
 	local u="$(dt_user "$1")"
+	local p="$(dt_port "$1")"
 	shift
 
 	req ssh || E=3 err $"cannot found required binary ssh"
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	ssh "${u}@${h}" "$@"
+	SSHOPTS="$SSHOPTS ${p:+-p $p}" ssh "${u}@${h}" "$@"
 }
 
 help "execute a command in remote hosts" \

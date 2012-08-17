@@ -132,8 +132,10 @@ list-patterns ()
 # api: helper
 dt_pattern ()
 {
+	local oIFS="$IFS"
 	IFS=:
 	read pattern_key pattern_val other <<< "$1"
+	IFS="$oIFS"
 
 	if [ "${pattern[${pattern_key:=nil}]}" ] ; then
 		if [ "${other}" ] ; then
@@ -183,8 +185,8 @@ dt_run ()
 }
 
 # fun: dt_bye
-# txt: kill all currently working coprocs and exits with 130 status code
-#      (interrupted). This function will be used in trap.
+# txt: kill all currently working coprocs and exits with 0 status code
+#      (interrupted). This function will be used in EXIT.
 # api: helper
 dt_bye ()
 {
@@ -193,7 +195,7 @@ dt_bye ()
 	done
 
 	wait "${pids[@]}"
-	exit 130
+	exit ${SUCCESS:-130}
 }
 
 # fun: dtdb_dump
@@ -339,6 +341,7 @@ dt_user ()
 {
 	local u="${1%@*}"
 	local h="${1#*@}"
+	local h="${h%%:*}"
 
 	if [ "$u" == "$h" ]; then
 		echo "${DTOOLS_USER:-${LOGNAME:-$(whoami)}}"
@@ -353,9 +356,33 @@ dt_user ()
 dt_host ()
 {
 	local h="${1#*@}"
+	local h="${h%%:*}"
 
 	[ "$h" ] && echo "$h" || E=1 err "no host found in expression '$1'"
 }
+
+# fun: dt_port <host_expr>
+# txt: get the port part of a host expression or fails if no port provided.
+# api: commands
+dt_port ()
+{
+	local p="${1##*:}"
+	[ "$p" != "$1" ] && echo "$p"
+}
+
+# fun: dt_procname <expr>
+# txt: convert expression in a proc safe name (no spaces, no dots etc).
+# api: helper
+dt_procname ()
+{
+	local r="${1//./_}"
+	local r="${r// /_}"
+	local r="${r//:/_}"
+	local r="${r//@/_}"
+	local r="${r//-/_}"
+	echo -n "$r"
+}
+
 
 # The main help text which displayed on usage information. From this text
 # probably we call to list-commands function to print available commands.
@@ -421,7 +448,6 @@ elif cap colors ; then
 				H|N|R|G|B|Y) eval  "${color%=*}=$'\\e[${color#*=}m'"
 			esac
 		done
-		set 
 	} else
 		H=$'\e[0;1m'
 		N=$'\e[0;0m'
@@ -464,14 +490,14 @@ for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-		pn="${h//-/_}"
-		pn="${pn//@/_}"
-		eval "coproc dt_${pn//./_} { dt_run "${h}" "${@}" >&3; }" 2>/dev/null
+		eval "coproc dt_$(dt_procname "$h") { dt_run "${h}" "${@}" >&3; }" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
-		pids[${#pids[@]}]="$(eval echo \${dt_${pn//./_}_PID})"
+		pids[${#pids[@]}]="$(eval echo \${dt_$(dt_procname "$h")_PID})"
 		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()
 	fi
 done
 
 # Finally waits for orphan coprocs if presents
 wait "${pids[@]}"
+SUCCESS=0
+
