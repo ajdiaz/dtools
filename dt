@@ -339,8 +339,10 @@ dtdb_findtag ()
 # api: commands
 dt_user ()
 {
-	local u="${1%@*}"
-	local h="${1#*@}"
+	local r="${1%%|*}"
+	local u="${r%%@*}"
+	local u="${u%%:*}"
+	local h="${r#*@}"
 	local h="${h%%:*}"
 
 	if [ "$u" == "$h" ]; then
@@ -355,7 +357,8 @@ dt_user ()
 # api: commands
 dt_host ()
 {
-	local h="${1#*@}"
+	local r="${1%%|*}"
+	local h="${r#*@}"
 	local h="${h%%:*}"
 
 	[ "$h" ] && echo "$h" || E=1 err "no host found in expression '$1'"
@@ -366,8 +369,14 @@ dt_host ()
 # api: commands
 dt_port ()
 {
-	local p="${1##*:}"
-	[ "$p" != "$1" ] && echo "$p"
+	local r="${1%%|*}"
+	local p="${r##*:}"
+	[ "$p" != "$r" ] && echo "$p"
+}
+
+dt_proxy () {
+	local  p="${1##*|}"
+	[ "$p" != "${1}" ] && echo "$p"
 }
 
 # fun: dt_procname <expr>
@@ -380,6 +389,7 @@ dt_procname ()
 	local r="${r//:/_}"
 	local r="${r//@/_}"
 	local r="${r//-/_}"
+	local r="${r//|/_}"
 	echo -n "$r"
 }
 
@@ -490,7 +500,7 @@ for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-		eval "coproc dt_$(dt_procname "$h") { dt_run "${h}" "${@}" >&3; }" 2>/dev/null
+		eval "coproc dt_$(dt_procname "$h") { dt_run  \""${h}"\" "${@}" >&3; }" 2>/dev/null
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
 		pids[${#pids[@]}]="$(eval echo \${dt_$(dt_procname "$h")_PID})"
 		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()

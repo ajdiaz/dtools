@@ -21,14 +21,22 @@ ssh ()
 	local h="$1"; shift
 	SSHOPTS="$SSHOPTS -oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
-		command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
-			-oBatchMode=yes "$h" ":" >&2 2>/dev/null
+		#command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
+		#	-oBatchMode=yes "$h" ":" >&2 2>/dev/null
 		#[ $? -eq 0 ] || input "ssh" "$h" "hidden" >/dev/tty
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
 	else
 		SSHOPTS="$SSHOPTS -oLogLevel=ERROR -oBatchMode=yes"
 	fi
-    eval command ssh $SSHOPTS "$h" \'"$@"\'
+	if [ "$SSHPROXY" ]; then
+		local pu="$(dt_user $SSHPROXY)"
+		local ph="$(dt_host $SSHPROXY)"
+		local pp="$(dt_port $SSHPROXY)"
+
+    	eval command ssh $SSHOPTS ${pp:+-p $pp} ${pu:+$pu@}$ph \"ssh $SSHOPTS "$h" \'"$@"\'\"
+    else
+	    eval command ssh $SSHOPTS "$h" \'"$@"\'
+	fi
 }
 
 # The runner is callled from main dt script, and pass one argument (the
@@ -39,13 +47,14 @@ run ()
 	local h="$(dt_host "$1")"
 	local u="$(dt_user "$1")"
 	local p="$(dt_port "$1")"
+	local proxy="$(dt_proxy "$1")"
 	shift
 
 	req ssh || E=3 err $"cannot found required binary ssh"
 
 	[ $# -lt 1 ] && E=3 err $"missing arguments"
 
-	SSHOPTS="$SSHOPTS ${p:+-p $p}" ssh "${u}@${h}" "$@"
+	SSHPROXY="$proxy" SSHOPTS="$SSHOPTS ${p:+-p $p}" ssh "${u}@${h}" "$@"
 }
 
 help "execute a command in remote hosts" \
