@@ -23,7 +23,9 @@ both hostnames."
 
 pattern_sys ()
 {
-	echo "${1//,/ }"
+	for x in $(eval echo "${1}"); do
+		echo "$x"
+	done
 }
 
 pattern "sys" pattern_sys

@@ -390,6 +390,7 @@ dt_procname ()
 	local r="${r//@/_}"
 	local r="${r//-/_}"
 	local r="${r//|/_}"
+	local r="${r//,/_}"
 	echo -n "$r"
 }
 
