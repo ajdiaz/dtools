@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-req "aws" || return 0
 
 help "match for host in AWS EC2 using tags" \
 "This pattern return the hosts which match for tags passed
@@ -51,6 +50,8 @@ Which is equivalent to:
 
 pattern_ec2 ()
 {
+    req "aws" || E=1 err "awscli is required"
+
 	[ "$AWS_ACCESS_KEY_ID" ] || E=1 err "no AWS_ACCESS_KEY_ID defined"
 	[ "$AWS_SECRET_ACCESS_KEY" ] || E=1 err "no AWS_SECRET_ACCESS_KEY defined"
 
