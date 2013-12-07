@@ -20,10 +20,9 @@
 # first one) which contains the remote hostname, and probably a list of
 # arguments for that command passed to dt on command line.
 
-req redis-cli || E=3 err $"cannot found required binary redis-cli"
-
 run ()
 {
+    req redis-cli || E=3 err $"cannot found required binary redis-cli"
 	local port=6379
 
 	case "$1" in
