@@ -16,32 +16,72 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-req "ec2-describe-tags" || return 0
+req "aws" || return 0
 
 help "match for host in AWS EC2 using tags" \
 "This pattern return the hosts which match for tags passed
 as argument using EC2 API (which is a requiremente). Also
-EC2_PRIVATE_KEY and EC2_CERT variables must be defined in the
-environment. You can use tag@region to filter the tag in an
-specific region"
+
+export AWS_ACCESS_KEY_ID=AKI...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_DEFAULT_REGION=us-east-1
+
+Is required to define key and region for this pattern.
+
+Basic usage:
+
+  dt ec2:tag=Label=Value list
+
+  dt ec2:tag=Name=myhost-01 list
+
+Which is equivalent to:
+
+  dt ec2:myhost-01
+
+And you can use globs here:
+
+  dt ec2:myhost-*
+
+  dt ec2:sec=default list
+
+Which is equivalent to:
+
+  dt ec2:group-name=default list
+"
 
 pattern_ec2 ()
 {
-	[ "$EC2_CERT" ]        || E=1 err "no EC2_CERT defined"
-	[ "$EC2_PRIVATE_KEY" ] || E=1 err "no EC2_PRIVATE_KEY defined"
+	[ "$AWS_ACCESS_KEY_ID" ] || E=1 err "no AWS_ACCESS_KEY_ID defined"
+	[ "$AWS_SECRET_ACCESS_KEY" ] || E=1 err "no AWS_SECRET_ACCESS_KEY defined"
 
-	local regions=()
+	export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
-	while read keyword region other; do
-		regions[${#regions[@]}]="$region"
-	done <<<"$(ec2dre)"
+    local fval=
+    local fnam=
 
-	for region in "${regions[@]}"; do
-		[ "${1//@/}" != "${1}" ] && [ "$region" != "${1##*@}" ] && continue
-		while read k1 k2 instance keytag tag; do
-			echo $instance
-		done <<<"$(ec2dtag --region "$region")"
-	done
+    case "$1" in
+       sec=*)
+           IFS='=' read fnam fval <<<"$1"
+           fnam="group-name"
+           ;;
+       tag=*)
+           IFS='=' read fnam fnam fval <<<"$1"
+           fnam="tag:$fnam";;
+       *=*)
+           IFS='=' read fnam fval <<<"$1"
+           ;;
+       *)
+           fnam="tag:Name"
+           fval="$1"
+           ;;
+    esac
+
+    local _awsargs="--filters Name=$fnam,Values=$fval"
+
+    while read keyword t arch uid t t ami i cpu_type aki key \
+                  launch_date dns_int ip_int dns_ext ip_ext storage_type t t; do
+        [ "${ip_ext}" ] && echo "${ip_ext}"
+    done <<<"$(aws --output=text ec2 describe-instances $_awsargs)"
 }
 
 pattern "ec2" pattern_ec2
