@@ -60,11 +60,16 @@ okay () { echo "${G}okay${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
 # api: message
 fail () { echo "${R}fail${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
 
-# fun: input <command> <host> [type] [message]
+# fun: info <command> <host> [message]
+# txt: return an ONMI info message for command on host
+# api: message
+info () { echo "${B}info${N}::$dt:${B}$1${N}:${H}$2${N}:$3" ; }
+
+# fun: user <command> <host> [type] [message]
 # txt: ask to the user for a stdin input.
 # api: message
-input () {
-	echo -n "${Y}type${N}:$3:$dt:${B}$1${N}:${H}$2${N}:${4:+$4:}" >&3
+user () {
+	echo -n "${M}type${N}:$3:$dt:${B}$1${N}:${H}$2${N}:${4:+$4:}" >&3
 }
 
 # fun: pattern <label> <fun>
@@ -191,7 +196,7 @@ dt_run ()
 dt_bye ()
 {
 	for pid in "${pids[@]}" ; do
-		kill "$pid" 2>/dev/null;
+        kill -- -$(ps opgid= "$pid") 2>/dev/null;
 	done
 
 	wait "${pids[@]}"
@@ -449,6 +454,7 @@ if ${opt_N:-false} ; then
 	G=
 	B=
 	Y=
+	M=
 elif cap colors ; then
 	# Setting colors if terminal supported them, on redirection to file
 	# a --no-color option might be provided in command line.
@@ -466,6 +472,7 @@ elif cap colors ; then
 		G=$'\e[32;1m'
 		B=$'\e[34;1m'
 		Y=$'\e[33;1m'
+		M=$'\e[35;1m'
 	fi
 fi
 
@@ -494,6 +501,7 @@ fun run || E=1 err "the command \`${command}' has not run function."
 # Here begin the crazy loop and also a random function to create exotic
 # errors. :)
 trap dt_bye EXIT
+trap dt_bye TERM
 let i=0
 exec 3<&1
 

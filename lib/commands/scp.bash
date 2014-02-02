@@ -31,7 +31,7 @@ scp ()
 	SSHOPTS="-oStrictHostKeyChecking=no"
 	if ${interactive:-false} ; then
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
-		input "scp" "${remote}" "hidden"
+		user "scp" "${remote}" "hidden"
 	else
 		SSHOPTS="$SSHOPTS -oBatchMode=yes"
 	fi

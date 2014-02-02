@@ -23,7 +23,7 @@ ssh ()
 	if ${interactive:-false} ; then
 		#command ssh $SSHOPTS -oKbdInteractiveAuthentication=no \
 		#	-oBatchMode=yes "$h" ":" >&2 2>/dev/null
-		#[ $? -eq 0 ] || input "ssh" "$h" "hidden" >/dev/tty
+		#[ $? -eq 0 ] || user "ssh" "$h" "hidden" >/dev/tty
  		SSHOPTS="${SSHOPTS} -oNumberofPasswordPrompts=1"
 	else
 		SSHOPTS="$SSHOPTS -oLogLevel=ERROR -oBatchMode=yes"
