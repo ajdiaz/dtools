@@ -1,4 +1,5 @@
 #! /bin/bash
+# vim:et:
 # Distributed tools; http://connectical.com/projects/dtools
 # Copyright (C) 2008-2010 Andres J. Diaz <ajdiaz@connectical.com>
 #
@@ -20,8 +21,9 @@
 # script and modules. We keep here check functions and error dispatchers.
 err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && eval ${E:+exit $E}; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
-lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null    || \
-	     source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
+lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null || \
+         source ./lib/"$1" 2>/dev/null >/dev/null || \
+	       source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
 use () { lib "${1//.//}" || source ${1}.dt 2>&1 >/dev/null; }
@@ -104,7 +106,8 @@ list-commands ()
 	local s=
 
 	help () { s="$1"; }
-    for f in ${DTOOLS_LIB}/commands/*.bash; do
+		for f in ~/.dtools/commands/*.bash \
+    			   ./lib/commands/*.bash ${DTOOLS_LIB}/commands/*.bash; do
         source "$f" 2>/dev/null >/dev/null
         local f="${f##*/}"
         local f="${f%.bash}"
@@ -123,7 +126,8 @@ list-patterns ()
 	local s=
 
 	help () { s="$1"; }
-    for f in ${DTOOLS_LIB}/patterns/*.bash; do
+		for f in ~/.dtools/patterns/*.bash \
+    			   ./lib/patterns/*.bash ${DTOOLS_LIB}/patterns/*.bash; do
         source "$f" 2>/dev/null >/dev/null
         local f="${f##*/}"
         local f="${f%.bash}"
@@ -418,7 +422,14 @@ patterns:
 $(list-patterns)
 
 commands:
-$(list-commands)"""
+$(list-commands)
+
+examples:
+
+  dt exp:host.* list
+  dt ec2:tag=Name=myhost-01 ping
+  dt not:exp:host.* list
+"""
 
 OPTIONS=$(getopt -o "h:D:C:T:ipN" --long \
 	"help:,db:,coproc:,timeout:,interactive,pretend,no-color" -- "$@")

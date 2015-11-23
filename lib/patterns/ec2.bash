@@ -57,32 +57,45 @@ pattern_ec2 ()
 
 	export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
-    local fval=
-    local fnam=
+  local fval=
+  local fnam=
 
-    case "$1" in
-       sec=*)
-           IFS='=' read fnam fval <<<"$1"
-           fnam="group-name"
-           ;;
-       tag=*)
-           IFS='=' read fnam fnam fval <<<"$1"
-           fnam="tag:$fnam";;
-       *=*)
-           IFS='=' read fnam fval <<<"$1"
-           ;;
-       *)
-           fnam="tag:Name"
-           fval="$1"
-           ;;
-    esac
+  case "$1" in
+     sec=*)
+         IFS='=' read fnam fval <<<"$1"
+         fnam="group-name"
+         ;;
+     tag=*)
+         IFS='=' read fnam fnam fval <<<"$1"
+         fnam="tag:$fnam";;
+     *=*)
+         IFS='=' read fnam fval <<<"$1"
+         ;;
+     *)
+         fnam="tag:Name"
+         fval="$1"
+         ;;
+  esac
 
-    local _awsargs="--filters Name=$fnam,Values=$fval"
+  local _awsargs="--filters Name=$fnam,Values=$fval"
+  local _ip=
 
-    while read keyword t arch uid t t ami i cpu_type aki key \
-                  launch_date dns_int ip_int dns_ext ip_ext storage_type t t; do
-        [ "${ip_ext}" ] && echo "${ip_ext}"
-    done <<<"$(aws --output=text ec2 describe-instances $_awsargs)"
+  while read line; do
+    if [ "${line%hvm}" == "${line}" ]; then
+      # paravirtual
+      read keyword count arch rid _ vmtype ami iid itype aki key ltime \
+           dns_int ip_int dns_ext ip_ext root ebs virt <<<"$line"
+    else
+      # hvm
+      read keyword count arch rid _ vmtype ami iid itype key ltime \
+           dns_int ip_int dns_ext ip_ext ebs virt <<<"$line"
+    fi
+      echo "$keyword $arch ${ip_ext}" >> /tmp/cosa
+      case "$keyword" in
+        INSTANCES) _ip="${ip_ext}";;
+        STATE) [ "$arch" == "running" ] && echo "$_ip";;
+      esac
+  done <<<"$(aws --output=text ec2 describe-instances $_awsargs)"
 }
 
 pattern "ec2" pattern_ec2
