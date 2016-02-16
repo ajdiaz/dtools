@@ -93,9 +93,10 @@ pattern_ec2 ()
       echo "$keyword $arch ${ip_ext}" >> /tmp/cosa
       case "$keyword" in
         INSTANCES) _ip="${ip_ext}";;
+        TAGS) [ "$count" == "Name" ] && _DISPLAY_NAME["$_ip"]="${arch}" ;;
         STATE) [ "$arch" == "running" ] && echo "$_ip";;
       esac
-  done <<<"$(aws --output=text ec2 describe-instances $_awsargs)"
+  done < <(aws --output=text ec2 describe-instances $_awsargs)
 }
 
 pattern "ec2" pattern_ec2

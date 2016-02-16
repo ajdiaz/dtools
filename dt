@@ -81,8 +81,8 @@ user () {
 #      then the function 'fun' will be called with .* as argument (note that
 #      the argument is never expanded automatically.
 # api: commands
-pattern () { pattern[$1]="$2"; }
 declare -A pattern
+pattern () { pattern[$1]="$2"; }
 
 # fun: help [item]
 # txt: display a help message for item passed as argument or, if none
@@ -136,6 +136,7 @@ list-patterns ()
     done
 }
 
+declare -A _DISPLAY_NAME
 # fun: dt_pattern <patternlist>
 # txt: return the list of hosts and tags whitch match with pattern list.
 # api: helper
@@ -163,8 +164,9 @@ dt_pattern ()
 # api: helper
 dt_pattern_filter ()
 {
-	for pattern in ${1//+/ }; do
-		dt_pattern "$pattern" | cut -d' ' -f1
+  local pat
+	for pat in ${1//+/ }; do
+		dt_pattern "$pat" | cut -d' ' -f1
 	done | sort | uniq
 }
 
@@ -187,10 +189,11 @@ dt_replace ()
 dt_run ()
 {
   local h="$1" ; shift
+  local n="${1:-$h}" ; shift
 
   ret="$(run "${h}" "$@" 2>&1)" &&
-  	  okay "$command" "${h}" "$(dt_replace "$ret")" ||
-	  fail "$command" "${h}" "$(dt_replace "$ret")"
+  	  okay "$command" "$n" "$(dt_replace "$ret")" ||
+	  fail "$command" "$n" "$(dt_replace "$ret")"
 }
 
 # fun: dt_bye
@@ -488,7 +491,10 @@ elif cap colors ; then
 fi
 
 # Load patterns available in library path.
-for lib in ${DTOOLS_LIB}/patterns/*.bash ~/.dtools/patterns/*.bash ; do
+for lib in ${DTOOLS_LIB}/patterns/*.bash \
+           ~/.dtools/patterns/*.bash \
+           ./lib/patterns/*
+do
 	[ "$lib" = "${DTOOLS_LIB}/patterns/*.bash" ] && continue
 	[ "$lib" = ~/.dtools/patterns/"*.bash" ] && continue
 	source "$lib" 2>/dev/null >/dev/null || \
@@ -520,7 +526,9 @@ for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-		eval "coproc dt_$(dt_procname "$h") { dt_run  \""${h}"\" "${@}" >&3; }" 2>/dev/null
+		eval "coproc dt_$(dt_procname "$h") {
+		  dt_run  \""${h}"\" \""${_DISPLAY_NAME["$h"]}"\" "${@}" >&3;
+	  }"
 		# Save coprocs PIDs to wait for... and waiting if counter is raised.
 		pids[${#pids[@]}]="$(eval echo \${dt_$(dt_procname "$h")_PID})"
 		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()
