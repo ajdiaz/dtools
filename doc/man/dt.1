@@ -76,6 +76,16 @@ Always return a null list of hosts, any argument is ignored too. This is
 only usefull for testing cases.
 
 .TP
+.B not:<pattern>
+Negate the result of the previous pattern.
+
+.TP
+.B ec2:<Name or expr>
+Use awscli to get the hosts in EC2 account with match to the specific Name
+(glob expressions are allowed here) or a EC2 search expression, like
+"tag:Name=something".
+
+.TP
 .B out::
 Return the list of hosts passed via stdin to the \fPdt\fP process.
 
