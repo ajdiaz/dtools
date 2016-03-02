@@ -69,7 +69,7 @@ dtx ()
 	fi
 
 	if [ "$(type -P dt 2>/dev/null)" ] ; then
-		dt ${dt_options} "$@" | $filter
+		dt ${dt_options} "$context" "$@" | $filter
 	else
 		fail "" "dt" "no such dt(1) in PATH"
 	fi
@@ -103,7 +103,7 @@ cmd_filter ()
 		host)    filter="dthost" ;;
 		status)  filter="dtstatus" ;;
 		compact) filter="dtcompact" ;;
-		none)    filer="cat";;
+		none)    filter="cat";;
 		*) fail "" "filter" "invalid filter ($1)"
 	esac
 }
