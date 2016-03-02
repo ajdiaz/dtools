@@ -522,20 +522,19 @@ trap dt_bye TERM
 let i=0
 exec 3<&1
 
+
 for h in "${HOSTLIST[@]}" ; do
 	if ${interactive:-false}; then
 		dt_run "${h}" "${@}" >&3
 	else
-		eval "coproc dt_$(dt_procname "$h") {
-		  dt_run  \""${h}"\" \""${_DISPLAY_NAME["$h"]}"\" "${@}" >&3;
-	  }"
-		# Save coprocs PIDs to wait for... and waiting if counter is raised.
-		pids[${#pids[@]}]="$(eval echo \${dt_$(dt_procname "$h")_PID})"
-		[ ${#pids[@]} -ge ${opt_C:-15} ] && wait "${pids[@]}" && pids=()
+    declare -A coprocs_pid
+	  dt_run "${h}" "${_DISPLAY_NAME["$h"]}" "${@}" >&3 &
+	  coprocs_pid[$!]="$h"
+		[ ${#coprocs_pids[@]} -ge ${opt_C:-15} ] && wait "${!coprocs_pids[@]}" && unset coprocs_pid
 	fi
 done
 
 # Finally waits for orphan coprocs if presents
-wait "${pids[@]}"
+wait "${!coprocs_pids[@]}"
 SUCCESS=0
 

@@ -48,6 +48,39 @@ Which is equivalent to:
   dt ec2:group-name=default list
 "
 
+
+parse_paravirtual () {
+  IFS=$'\t' read -r _ _ _ hack _ _ _ _ _ _ _ _ os data1 data2 data3 _ <<<"$1"
+  case "$hack" in
+    False|True) echo "$data1" ;;
+    *) 
+      case "$os" in
+        windows) echo "$data3";;
+        *) echo "$data2";;
+      esac;;
+  esac
+}
+
+parse_hvm () {
+  IFS=$'\t' read -r _ _ _ hack _ _ _ _ _ _ _ os data1 data2 data3 _ <<<"$1"
+  case "$hack" in
+    False|True) echo "$data1" ;;
+    *) 
+      case "$os" in
+        windows) echo "$data3";;
+        *) echo "$data2";;
+      esac;;
+  esac
+
+}
+
+parse_vpc () {
+  IFS=$'\t' read -r _ _ _ _ _ _ _ _ _ _ _ _ _ data _ <<<"$1"
+  [ "$data" ] || echo "$1" >&2
+  echo "$data"
+}
+
+
 pattern_ec2 ()
 {
     req "aws" || E=1 err "awscli is required"
@@ -81,22 +114,19 @@ pattern_ec2 ()
   local _ip=
 
   while read line; do
-    if [ "${line%hvm}" == "${line}" ]; then
-      # paravirtual
-      read keyword count arch rid _ vmtype ami iid itype aki key ltime \
-           dns_int ip_int dns_ext ip_ext root ebs virt <<<"$line"
-    else
-      # hvm
-      read keyword count arch rid _ vmtype ami iid itype key ltime \
-           dns_int ip_int dns_ext ip_ext ebs virt <<<"$line"
-    fi
-      echo "$keyword $arch ${ip_ext}" >> /tmp/cosa
-      case "$keyword" in
-        INSTANCES) _ip="${ip_ext}";;
-        TAGS) [ "$count" == "Name" ] && _DISPLAY_NAME["$_ip"]="${arch}" ;;
-        STATE) [ "$arch" == "running" ] && echo "$_ip";;
-      esac
-  done < <(aws --output=text ec2 describe-instances $_awsargs)
+    case "$line" in
+      INSTANCE*) ;;
+      *) continue;;
+    esac
+    kind="${line##*$'\t'}"
+    case "$kind" in
+      paravirtual) parse_paravirtual "$line";;
+      hvm) parse_hvm "$line";;
+      vpc-*) parse_vpc "$line";;
+    esac
+  done < <(aws --output=text ec2 describe-instances \
+               --filters Name=instance-state-code,Values=16 \
+               $_awsargs)
 }
 
 pattern "ec2" pattern_ec2

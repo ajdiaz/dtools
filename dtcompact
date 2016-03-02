@@ -96,7 +96,7 @@ fi
 if ! ${opt_S:-false}; then
 	echo
 	if [ $sums -gt 0 ]; then
-		printf "%-20s%5s\n" "${H}Total:${N}" "${sums} $(($(date +%s) - $d))"
+		printf "%-20s%5s\n" "${H}Total:${N}" "${sums} in $(($(date +%s) - $d))s"
 		printf "%-20s%5s     [%4s]\n" "${H}Okay:${N}" "${okay}" "$((okay * 100 / sums))%"
 		printf "%-20s%5s     [%4s]\n" "${H}Fail:${N}" "${fail}" "$((fail * 100 / sums))%"
 		printf "%-20s%5s     [%4s]\n" "${H}Unknown:${N}" "${unkn}" "$((unkn * 100 / sums))%"
