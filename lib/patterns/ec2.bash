@@ -110,7 +110,7 @@ pattern_ec2 ()
          ;;
   esac
 
-  local _awsargs="--filters Name=$fnam,Values=$fval"
+  local _awsargs="Name=$fnam,Values=$fval"
   local _ip=
 
   while read line; do
@@ -125,7 +125,7 @@ pattern_ec2 ()
       vpc-*) parse_vpc "$line";;
     esac
   done < <(aws --output=text ec2 describe-instances \
-               --filters Name=instance-state-code,Values=16 \
+               --filters Name=instance-state-name,Values=running \
                $_awsargs)
 }
 
