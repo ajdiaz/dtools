@@ -76,8 +76,7 @@ parse_hvm () {
 
 parse_vpc () {
   IFS=$'\t' read -r _ _ _ _ _ _ _ _ _ _ _ _ _ data _ <<<"$1"
-  [ "$data" ] || echo "$1" >&2
-  echo "$data"
+  [ "$data" ] || echo "$1"
 }
 
 
