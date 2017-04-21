@@ -19,7 +19,7 @@
 
 # Some usefull functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
-err () { echo "${R}fail${N}::$(basename $0):$@" >&2 && eval ${E:+exit $E}; }
+err () { echo "${R}fail${N}::$(basename $0):$*" >&2 && eval "${E:+exit "$E"}"; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null || \
          source ./lib/"$1" 2>/dev/null >/dev/null || \

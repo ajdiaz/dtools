@@ -48,37 +48,14 @@ Which is equivalent to:
   dt ec2:group-name=default list
 "
 
-
-parse_paravirtual () {
-  IFS=$'\t' read -r _ _ _ hack _ _ _ _ _ _ _ _ os data1 data2 data3 _ <<<"$1"
-  case "$hack" in
-    False|True) echo "$data1" ;;
-    *) 
-      case "$os" in
-        windows) echo "$data3";;
-        *) echo "$data2";;
-      esac;;
-  esac
+parse_line ()
+{
+  for word in $1; do
+    case "$word" in
+      *.amazonaws.com) echo "$word";;
+    esac
+  done
 }
-
-parse_hvm () {
-  IFS=$'\t' read -r _ _ _ hack _ _ _ _ _ _ _ os data1 data2 data3 _ <<<"$1"
-  case "$hack" in
-    False|True) echo "$data1" ;;
-    *) 
-      case "$os" in
-        windows) echo "$data3";;
-        *) echo "$data2";;
-      esac;;
-  esac
-
-}
-
-parse_vpc () {
-  IFS=$'\t' read -r _ _ _ _ _ _ _ _ _ _ _ _ _ data _ <<<"$1"
-  [ "$data" ] || echo "$1"
-}
-
 
 pattern_ec2 ()
 {
@@ -94,14 +71,14 @@ pattern_ec2 ()
 
   case "$1" in
      sec=*)
-         IFS='=' read fnam fval <<<"$1"
+         IFS='=' read -r fnam fval <<<"$1"
          fnam="group-name"
          ;;
      tag=*)
-         IFS='=' read fnam fnam fval <<<"$1"
+         IFS='=' read -r fnam fnam fval <<<"$1"
          fnam="tag:$fnam";;
      *=*)
-         IFS='=' read fnam fval <<<"$1"
+         IFS='=' read -r fnam fval <<<"$1"
          ;;
      *)
          fnam="tag:Name"
@@ -109,23 +86,18 @@ pattern_ec2 ()
          ;;
   esac
 
-  local _awsargs="Name=$fnam,Values=$fval"
-  local _ip=
+  local -a _awsargs=( "Name=$fnam,Values=$fval" )
 
-  while read line; do
+  while read -r line; do
     case "$line" in
       INSTANCE*) ;;
       *) continue;;
     esac
-    kind="${line##*$'\t'}"
-    case "$kind" in
-      paravirtual) parse_paravirtual "$line";;
-      hvm) parse_hvm "$line";;
-      vpc-*) parse_vpc "$line";;
-    esac
+
+    parse_line "$line"
   done < <(aws --output=text ec2 describe-instances \
                --filters Name=instance-state-name,Values=running \
-               $_awsargs)
+               "${_awsargs[@]}")
 }
 
 pattern "ec2" pattern_ec2
