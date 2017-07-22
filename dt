@@ -17,16 +17,19 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# Some usefull functions to everybody, declared here to be accesible for all
+REALPATH="$(dirname "$(realpath "$0")")"
+# Some useful functions to everybody, declared here to be accesible for all
 # script and modules. We keep here check functions and error dispatchers.
-err () { echo "${R}fail${N}::$(basename $0):$*" >&2 && eval "${E:+exit "$E"}"; }
+err () { echo "${R}fail${N}::$(basename "$0"):$*" >&2 &&
+         eval "${E:+exit "$E"}"; }
 req () { type -p "$1" 2>/dev/null >/dev/null; }
 lib () { source ~/.dtools/"$1" 2>/dev/null >/dev/null || \
          source ./lib/"$1" 2>/dev/null >/dev/null || \
-	       source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null; }
+	       source "${DTOOLS_LIB}/$1" 2>/dev/null >/dev/null || \
+	       source "${REALPATH}/lib/$1" 2>/dev/null >/dev/null; }
 fun () { declare -F "$1" 2>/dev/null >/dev/null; }
 cap () { tput "$1" 2>/dev/null >/dev/null; }
-use () { lib "${1//.//}" || source ${1}.dt 2>&1 >/dev/null; }
+use () { lib "${1//.//}" || source "${1}.dt" >/dev/null 2>&1; }
 
 # Enablig debug if DEBUG environment variable is present. This will be more
 # verbose than you expect...
@@ -38,8 +41,8 @@ DTOOLS_LIB="${DTOOLS_LIB:-/usr/lib/dtools}"
 
 # Set the default database file for dtools. TODO the database as loaders, in
 # the future other database backend must be supported too.
-DTOOLS_DB=~/.dtdb
-DEFAULT_DTOOLS_DB=$DTOOLS_DB
+DTOOLS_DB="${DTOOLS_DB:-~/.dtdb}"
+[[ -r "${DTOOLS_DB}" ]] || DTOOLS_DB=~/.ssh/known_hosts
 
 # Check that we have bash >= 4. We required new bash enhancement for
 # dtools >= 3. Prior code is bash < 4 compatible (AFAIK). Also check for
@@ -107,7 +110,9 @@ list-commands ()
 
 	help () { s="$1"; }
 		for f in ~/.dtools/commands/*.bash \
-    			   ./lib/commands/*.bash ${DTOOLS_LIB}/commands/*.bash; do
+    			   ./lib/commands/*.bash \
+    			   ${DTOOLS_LIB}/commands/*.bash \
+    			   ${REALPATH}/lib/commands/*.bash; do
         source "$f" 2>/dev/null >/dev/null
         local f="${f##*/}"
         local f="${f%.bash}"
@@ -127,7 +132,9 @@ list-patterns ()
 
 	help () { s="$1"; }
 		for f in ~/.dtools/patterns/*.bash \
-    			   ./lib/patterns/*.bash ${DTOOLS_LIB}/patterns/*.bash; do
+    			   ./lib/patterns/*.bash \
+    			   ${DTOOLS_LIB}/patterns/*.bash \
+    			   ${REALPATH}/lib/patterns/*.bash; do
         source "$f" 2>/dev/null >/dev/null
         local f="${f##*/}"
         local f="${f%.bash}"
@@ -202,12 +209,12 @@ dt_run ()
 # api: helper
 dt_bye ()
 {
-	for pid in "${pids[@]}" ; do
-        kill -- -$(ps opgid= "$pid") 2>/dev/null;
+	for pid in "${pids[@]}"; do
+      kill -- "-$(ps opgid= "$pid")" 2>/dev/null;
 	done
 
 	wait "${pids[@]}"
-	exit ${SUCCESS:-130}
+	exit "${SUCCESS:-130}"
 }
 
 # fun: dtdb_dump
@@ -222,7 +229,7 @@ dtdb_dump () { cat "${DTOOLS_DB:-/dev/null}"; }
 dtdb_findhost ()
 {
     if [ ${#HOSTLIST[@]} -eq 0 ]; then
-        while read host tags ; do
+        while -r read host tags ; do
             [ "${host:0:1}" == "#" ] && continue
             host="${host#@}"
             case "$(expr match "$host" "^$1[[:blank:]]*")" in
@@ -232,7 +239,7 @@ dtdb_findhost ()
         done < "${DTOOLS_DB:-/dev/null}"
     else
         for line in "${HOSTLIST[@]}"; do
-            read host tags <<<"$line"
+            read -r host tags <<<"$line"
             [ "${host:0:1}" == "#" ] && continue
             host="${host#@}"
             case "$(expr match "$host" "^$1[[:blank:]]*")" in
@@ -261,13 +268,13 @@ dtdb_addtag ()
 	mapfile -t DTDBTMP < "${DTOOLS_DB:-/dev/null}"
 
 	for line in "${DTDBTMP[@]}" ; do
-		read host tags <<<"$line"
+		read -r host tags <<<"$line"
 	    [ "${host:0:1}" == "#" ] && continue
 		host="${host#*@}"
 
 		case "$(expr match "$host" "^$h[[:blank:]]*")" in
 			0) echo "$host $tags" ;;
-			*) echo "$host $tags $@" ;;
+			*) echo "$host $tags $*" ;;
 		esac
 	done > "${DTOOLS_DB:-/dev/null}"
 }
@@ -282,7 +289,7 @@ dtdb_deltag ()
 	mapfile -t DTDBTMP < "${DTOOLS_DB:-/dev/null}"
 
 	for line in "${DTDBTMP[@]}" ; do
-		read host tags <<<"$line"
+		read -r host tags <<<"$line"
 	    [ "${host:0:1}" == "#" ] && continue
 	    host="${host#@}"
 
@@ -311,12 +318,12 @@ _dtdb_findtag ()
 {
 	shopt -s extglob
 
-	opts="$@"
-	while read host tags ; do
+  opts=( "$@" )
+	while read -r host tags ; do
 	    [ "${host:0:1}" == "#" ] && continue
 	    host="${host#@}"
 
-		set -- $opts
+		set -- "${opts[@]}"
 		while [ "$1" ] ; do
 			case "$1" in
 				-r|--reverse) op="!=" ; shift ; continue ;;
@@ -342,7 +349,7 @@ dtdb_findtag ()
     local exp="${exp//,/ }"
     local exp="${exp//\(/\$\(_dtdb_findtag  }"
     local exp="${exp//\)/ }"
-	cat "${DTOOLS_DB:-/dev/stdin}" | eval _dtdb_findtag $exp
+    eval "_dtdb_findtag $exp" < "${DTOOLS_DB:-/dev/stdin}"
 }
 
 # fun: dt_user <host_exp>
@@ -373,7 +380,11 @@ dt_host ()
 	local h="${r#*@}"
 	local h="${h%%:*}"
 
-	[ "$h" ] && echo "$h" || E=1 err "no host found in expression '$1'"
+	if [[ "$h" ]]; then
+	  echo "$h"
+	else
+	  E=1 err "no host found in expression '$1'"
+	fi
 }
 
 # fun: dt_port <host_expr>
@@ -409,7 +420,7 @@ dt_procname ()
 
 # The main help text which displayed on usage information. From this text
 # probably we call to list-commands function to print available commands.
-help="""usage:
+help="usage:
   $0 [options] <pattern> <command> [arguments]+
 
 options:
@@ -432,27 +443,24 @@ examples:
   dt exp:host.* list
   dt ec2:tag=Name=myhost-01 ping
   dt not:exp:host.* list
-"""
+"
 
-OPTIONS=$(getopt -o "h:D:C:T:ipN" --long \
-	"help:,db:,coproc:,timeout:,interactive,pretend,no-color" -- "$@")
-
-# Abort if getopt fails to parse arguments in any way.
-if [ $? != 0 ] ; then
+if ! OPTIONS=$(getopt -o "h:D:C:ipN" --long \
+	"help:,db:,coproc:,interactive,pretend,no-color" -- "$@"); then
+  # Abort if getopt fails to parse arguments in any way.
 	help >&2 && exit 1
 fi
 
 # Parse command line options.
-eval set -- "$OPTIONS"; dt="$(basename $0)"
+eval set -- "$OPTIONS"; dt="$(basename "$0")"
 while [[ "$1" = -* ]]; do
     case "$1" in
     	-h|--help) help "$2"; exit 0 ;;
     	-p|--pretend) opt_p=true  ;;
     	-N|--no-color) opt_N=true ;;
     	-i|--interactive) interactive=true && opt_C=0 ;;
-    	-D|--db) DTOOLS_DB="$2"; DEFAULT_DTOOLS_DB="$DTOOLS_DB"  ; shift ;;
-    	-C|--coproc)  opt_C="$2"  ; shift ;;
-    	-T|--timeout) opt_T="$2"  ; shift ;;
+    	-D|--db) DTOOLS_DB="$2"; shift ;;
+    	-C|--coproc)  opt_C="$2"; shift ;;
         --) shift ; break ;;
         *) echo "$1" ; help >&2 && exit 1
     esac
@@ -493,10 +501,13 @@ fi
 # Load patterns available in library path.
 for lib in ${DTOOLS_LIB}/patterns/*.bash \
            ~/.dtools/patterns/*.bash \
-           ./lib/patterns/*
+           ./lib/patterns/*.bash \
+           ${REALPATH}/lib/patterns/*.bash
 do
 	[ "$lib" = "${DTOOLS_LIB}/patterns/*.bash" ] && continue
 	[ "$lib" = ~/.dtools/patterns/"*.bash" ] && continue
+	[ "$lib" = ./lib/patterns/"*.bash" ] && continue
+	[ "$lib" = "${REALPATH}/lib/patterns/*.bash" ] && continue
 	source "$lib" 2>/dev/null >/dev/null || \
 		E=1 err "internal error on pattern definition ($lib)"
 done
