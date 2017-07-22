@@ -1,0 +1,328 @@
+#! /bin/bash
+# vim:et:
+# Distributed tools; http://ajdiaz.me/dtools
+# Copyright (C) 2008-2017 Andres J. Diaz <ajdiaz@connectical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+set -f
+
+declare -a var_dt_libpath=( ~/.dt /usr/lib/dt "$(dirname "$(realpath "$0")")" )
+declare -A var_dt_command=()
+declare -A var_dt_pattern=()
+declare -A var_dt_printer=()
+
+[[ "$DTOOLS_LIB" ]] && var_dt_libpath+=( "$DTOOLS_LIB" )
+
+
+# -- patterns
+# these are the patterns which use to search 
+var_dt_pattern["exp"]="Filter by glob expression"
+pattern_exp ()
+{
+  local file="${DTOOLS_DTDB:-${HOME}/.ssh/known_hosts}"
+  local expr="$1"
+
+  while read -r addr _; do
+    for addr in $(util_strtok "," "$addr"); do
+      case "$addr" in
+        $expr) echo "$addr" "$addr";;
+      esac
+    done
+  done < "$file"
+}
+
+
+# -- commands
+var_dt_command["help"]="Show short help summary"
+command_help ()
+{
+  printf "dt: distributed tools\n"
+  printf "usage: %s [opts] <pattern> <command> [args]\n\n" "$0"
+  printf "options:\n"
+  printf "  -h,   --help       show this hel screen\n"
+  printf "  -p X, --procs X    use X processes at parallel\n"
+  printf "  -o X, --output X   use X printer as output\n"
+  printf "\navailable patterns:\n"
+  for pat in "${!var_dt_pattern[@]}"; do
+    printf "  %-10s %s\n" "$pat" "${var_dt_pattern[$pat]}"
+  done
+
+  printf "\navailable commands:\n"
+  for cmd in "${!var_dt_command[@]}"; do
+    printf "  %-10s %s\n" "$cmd" "${var_dt_command[$cmd]}"
+  done
+
+ printf "\navailable printers:\n"
+  for prt in "${!var_dt_printer[@]}"; do
+    printf "  %-10s %s\n" "$prt" "${var_dt_printer[$prt]}"
+  done
+}
+
+var_dt_command["ssh"]="Run command in ssh"
+command_ssh ()
+{
+  sshopts=( "-oStrictHostKeyChecking=no"
+            "-oLogLevel=ERROR"
+            "-oBatchMode=yes"
+            "-oConnectTimeout=$timeout" )
+  sshopts+=( ${SSHOPTS} )
+
+  while read -r host name; do
+    # shellcheck disable=SC2029
+    if out="$(ssh "${sshopts[@]}" "$host" "$@" 2>&1)"; then
+      echo -E okay "$name" "$(util_escape "$out")"
+    else
+      echo -E fail "$name" "$(util_escape "$out")"
+    fi
+  done
+}
+
+var_dt_command["ls"]="List affected hosts"
+command_ls ()
+{
+  while read -r host name; do
+    echo "okay" "$name" ""
+  done
+}
+
+var_dt_command["ping"]="ICMP ping a host"
+command_ping ()
+{
+  while read -r host name; do
+    if  ret="$(ping -q -c 1 "$host" 2>&1)"; then
+      echo "okay" "$name" "$(util_escape "$ret")"
+    else
+      echo "fail" "$name" "$(util_escape "$ret")"
+    fi
+  done
+}
+
+var_dt_command["scp"]="copy a file to remote host"
+command_scp ()
+{
+  sshopts=( "-oStrictHostKeyChecking=no"
+            "-oLogLevel=ERROR"
+            "-oBatchMode=yes"
+            "-oConnectTimeout=$timeout" )
+  sshopts+=( ${SSHOPTS} )
+
+  while read -r host name; do
+    # shellcheck disable=SC2029
+    if out="$(scp "${sshopts[@]}" "$1" "$host:$2" 2>&1)"; then
+      echo -E okay "$name" "$(util_escape "$out")"
+    else
+      echo -E fail "$name" "$(util_escape "$out")"
+    fi
+  done
+}
+
+
+# -- printers
+# control how to display output
+case $(tput colors 2>/dev/null) in
+  256)
+    COLOR_RESET=$'\033[0;0;0m'
+    COLOR_GREEN=$'\033[1;15m\033[38;5;2m'
+    COLOR_BLUE=$'\033[1;15m\033[38;5;68m'
+    COLOR_RED=$'\033[1;15m\033[38;5;160m'
+    ;;
+  16)
+    COLOR_RESET=$'\033[0;0m'
+    COLOR_GREEN=$'\033[1;32m'
+    COLOR_BLUE=$'\033[1;34m'
+    COLOR_RED=$'\033[1;31m'
+    ;;
+esac
+
+var_dt_printer["default"]="default printer print basic output in colors"
+printer_default () {
+  msg=''
+  while read -r s n o; do
+    case "$s" in
+      okay) msg="${COLOR_GREEN}okay${COLOR_RESET}";;
+      *) msg="${COLOR_RED}fail${COLOR_RESET}";;
+    esac
+    msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+    echo -E "$msg"
+  done
+}
+
+var_dt_printer["host"]="sort output by host (works great with multilines)"
+printer_host ()
+{
+  msg=''
+  while read -r s n o; do
+    case "$s" in
+      okay) msg="${COLOR_GREEN}okay${COLOR_RESET}";;
+      *) msg="${COLOR_RED}fail${COLOR_RESET}";;
+    esac
+    msg+=" ${COLOR_BLUE}$n${COLOR_RESET}"
+    echo -E "$msg"
+    util_unescape "$o"
+  done
+}
+
+var_dt_printer["okay"]="sort by status, okay first, fail latest"
+printer_okay ()
+{
+  msg=''
+  lst=()
+  while read -r s n o; do
+    case "$s" in
+      okay)
+        msg="${COLOR_GREEN}okay${COLOR_RESET}"
+        msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+        echo -E "$msg";;
+      *) msg="${COLOR_RED}fail${COLOR_RESET}"
+         msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+         lst+=( "$msg" );;
+    esac
+  done
+
+  for item in "${lst[@]}"; do
+    echo -E "$item"
+  done
+}
+
+var_dt_printer["fail"]="sort by status, fail first, okay latest"
+printer_fail ()
+{
+  msg=''
+  lst=()
+  while read -r s n o; do
+    case "$s" in
+      okay)
+        msg="${COLOR_GREEN}okay${COLOR_RESET}"
+        msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+         lst+=( "$msg" );;
+      *) msg="${COLOR_RED}fail${COLOR_RESET}"
+         msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+        echo -E "$msg";;
+    esac
+  done
+
+  for item in "${lst[@]}"; do
+    echo -E "$item"
+  done
+}
+
+var_dt_printer["dot"]="compact mode supress okay"
+printer_dot ()
+{
+  msg=''
+  lst=()
+  while read -r s n o; do
+    case "$s" in
+      okay)
+        echo -n "${COLOR_GREEN}.${COLOR_RESET}";;
+      *)
+        echo -n "${COLOR_RED}X${COLOR_RESET}"
+        msg="${COLOR_RED}fail${COLOR_RESET}"
+        msg+=" ${COLOR_BLUE}$n${COLOR_RESET} $o"
+        lst+=( "$msg" );;
+    esac
+  done; echo
+
+  for item in "${lst[@]}"; do
+    echo -E "$item"
+  done
+}
+
+# -- utils
+util_strtok () (
+  export IFS="$1"
+  for token in $2; do
+    echo "$token"
+  done
+)
+
+util_parser ()
+{
+  fn=( $(util_strtok ":" "$2") )
+  fn[0]="${1}_${fn[0]}"
+  shift 2
+  fn+=( "$@" )
+
+  if declare -f "${fn[0]}" >/dev/null 2>&1; then
+    "${fn[@]}"
+  else
+    echo "invalid $1: ${fn[0]}" >&2
+    exit 1
+  fi
+}
+
+util_escape ()
+{
+  ret=''
+  while read -r line; do
+    line="${line//\\/\\\\}"
+    line="${line//$'\r'/}"
+    ret+="$line"
+  done <<< "$1"
+  echo -E "$ret"
+}
+
+util_unescape ()
+{
+  echo "  ${1//\\n/$'\n'}"
+}
+
+
+# -- main
+main ()
+{
+  timeout=5
+  out=default
+  if ! procs="$((4 * $(nproc)))"; then
+    procs=1
+  fi
+
+  set +f
+  for lib in "${var_dt_libpath[@]}"/*.plugin.bash; do
+    # shellcheck disable=SC1090
+    [[ -r "$lib" ]] && source "$lib"
+  done
+  set -f
+
+  while [[ "${1:0:1}" = "-" ]]; do
+    case "$1" in
+      -h|--help) command_help ; exit 0;;
+      -O|--output) out="$2"; shift;;
+      -p|--procs) procs="$2"; shift;;
+      *) printf "invalid argument: %s" "$1" >&2; command_help; exit 2;;
+    esac; shift
+  done
+
+  if [[ $# -lt 2 ]]; then
+    printf "missing arguments" >&2; command_help; exit 2
+  fi
+
+  pat="$1" cmd="$2" ; shift 2
+
+  count=0
+  util_parser "pattern" "$pat" | {
+    while read -r line; do
+      util_parser "command" "$cmd" "$@" <<< "$line" &
+      if [[ $((++count)) -ge $procs ]]; then
+        wait -n
+        ((--count))
+      fi
+    done
+    wait
+  } | util_parser "printer" "$out"
+}
+
+main "$@"
